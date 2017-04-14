@@ -1,0 +1,24 @@
+﻿<Window x:Class="MemoryWarden.WarningWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:MemoryWarden"
+        mc:Ignorable="d"
+        Title="WARNING from Memory Warden" ScrollViewer.VerticalScrollBarVisibility="Disabled" SizeToContent="WidthAndHeight">
+    <StackPanel ScrollViewer.VerticalScrollBarVisibility="Disabled">
+        <Label x:Name="label" Content="WARNING" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="14" ScrollViewer.VerticalScrollBarVisibility="Disabled"/>
+        <StackPanel x:Name="memoryRow" Orientation="Horizontal">
+            <Label x:Name="label1" Content="System memory usage exceeding " HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14"/>
+            <Label x:Name="memoryValue" FontSize="14" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ScrollViewer.VerticalScrollBarVisibility="Disabled" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Label x:Name="label2" Content="%" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        </StackPanel>
+        <DataGrid x:Name="memoryHogs" FontSize="14" IsReadOnly="True" MinHeight="300" MaxHeight="300" AutoGenerateColumns="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="RAM %" Binding="{Binding ramPercent}" SortDirection="Descending"/>
+                <DataGridTextColumn Header="Process Name" Binding="{Binding Name}"/>
+                <DataGridTextColumn Header="PID" Binding="{Binding PID}"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </StackPanel>
+</Window>
