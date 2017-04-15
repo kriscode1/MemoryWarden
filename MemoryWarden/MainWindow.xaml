@@ -22,16 +22,18 @@
             <Grid x:Name="warningsBuilderGrid" Margin="0,10,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition/>
-                    <ColumnDefinition Width="0.2*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition/>
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
                     <RowDefinition/>
                     <RowDefinition/>
                 </Grid.RowDefinitions>
-                <Button x:Name="addWarningButton" Content="Add Warning" VerticalAlignment="Center" Width="130" Height="23" Click="AddWarningClicked"/>
-                <Button x:Name="removeWarningButton" Content="Remove Warning" Grid.Column="2" VerticalAlignment="Center" Width="130" Height="23" Click="RemoveWarningClicked"/>
-                <DataGrid x:Name="warningsDataGrid" Margin="0,10,0,0" Grid.Row="1" Grid.ColumnSpan="3" HorizontalScrollBarVisibility="Disabled" CanUserReorderColumns="False" CanUserResizeRows="False"/>
+                <Button x:Name="addWarningButton" Content="add warning" VerticalAlignment="Center" Width="130" Height="23" Click="AddWarningClicked" Grid.Column="1"/>
+                <Button x:Name="removeWarningButton" Content="remove warning" Grid.Column="3" VerticalAlignment="Center" Width="130" Height="23" Click="RemoveWarningClicked"/>
+                <DataGrid x:Name="warningsDataGrid" Margin="0,10,0,0" Grid.Row="1" Grid.ColumnSpan="5" HorizontalScrollBarVisibility="Disabled" CanUserReorderColumns="False" CanUserResizeRows="False" AutoGenerateColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False"/>
             </Grid>
         </GroupBox>
         <StackPanel x:Name="Buttons" Orientation="Horizontal" Margin="10" FlowDirection="RightToLeft">

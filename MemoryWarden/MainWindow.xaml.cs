@@ -16,6 +16,7 @@ using System.Windows.Shapes;
 using System.Windows.Forms;
 using System.Drawing;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 
 namespace MemoryWarden
 {
@@ -42,8 +43,6 @@ namespace MemoryWarden
             trayIcon.Visible = true;
 
             //Programmatically build warnings table for user to modify
-            warningsDataGrid.AutoGenerateColumns = false;
-            warningsDataGrid.ItemsSource = null;
 
             //Column: warning type
             DataGridComboBoxColumn warningTypeColumn = new DataGridComboBoxColumn();
@@ -51,28 +50,33 @@ namespace MemoryWarden
             warningTypeColumn.ItemsSource = Enum.GetNames(typeof(WarningType));
             System.Windows.Data.Binding warningTypeColumnBind = new System.Windows.Data.Binding("typeText");
             warningTypeColumnBind.Mode = BindingMode.TwoWay;
+            warningTypeColumnBind.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
             warningTypeColumn.SelectedItemBinding = warningTypeColumnBind;
 
             //Column: treshold value
-            DataGridTextColumn tresholdValueColumn = new DataGridTextColumn();
-            tresholdValueColumn.Header = "Warning triggers at this memory %";
-            System.Windows.Data.Binding tresholdValueColumnBind = new System.Windows.Data.Binding("thresholdText");
-            tresholdValueColumnBind.Mode = BindingMode.TwoWay;
-            tresholdValueColumn.Binding = tresholdValueColumnBind;
+            DataGridTextColumn thresholdValueColumn = new DataGridTextColumn();
+            thresholdValueColumn.Header = "Warning triggers at this memory %";
+            thresholdValueColumn.SortDirection = ListSortDirection.Ascending;//Won't actually sort by this column, just here for looks
+            System.Windows.Data.Binding thresholdValueColumnBind = new System.Windows.Data.Binding("thresholdText");
+            thresholdValueColumnBind.Mode = BindingMode.TwoWay;
+            thresholdValueColumnBind.UpdateSourceTrigger = UpdateSourceTrigger.LostFocus;
+            thresholdValueColumn.Binding = thresholdValueColumnBind;
             
             //Add columns in desired order
             warningsDataGrid.Columns.Clear();
             warningsDataGrid.Columns.Add(warningTypeColumn);
-            warningsDataGrid.Columns.Add(tresholdValueColumn);
+            warningsDataGrid.Columns.Add(thresholdValueColumn);
 
             //Add initial rows
-            //warnings = new List<WarningEvent>();
             warnings = new ObservableCollection<WarningEvent>();
-            warnings.Add(new WarningEvent(35, WarningType.aggressive));
-            warnings.Add(new WarningEvent(75, WarningType.passive));
-            warnings.Add(new WarningEvent(95, WarningType.kill));
+            warnings.Add(new WarningEvent(35, WarningType.passive));
+            warnings.Add(new WarningEvent(75, WarningType.aggressive));
+            warnings.Add(new WarningEvent(98, WarningType.kill));
             warningsDataGrid.ItemsSource = warnings;
-            
+
+            //Enable sorting on the numeric value of threshold, not shown as a column
+            warningsDataGrid.Items.SortDescriptions.Add(new SortDescription("threshold", ListSortDirection.Ascending));
+            warningsDataGrid.Items.IsLiveSorting = true;
         }
 
         private void TypeDigitsOnly(object sender, TextCompositionEventArgs e)
@@ -188,7 +192,7 @@ namespace MemoryWarden
 
         private void AddWarningClicked(object sender, RoutedEventArgs e)
         {
-            warnings.Add(new WarningEvent(90, WarningType.kill));
+            warnings.Add(new WarningEvent(0, WarningType.passive));
         }
 
         private void RemoveWarningClicked(object sender, RoutedEventArgs e)
