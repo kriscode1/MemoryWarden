@@ -1,3 +1,6 @@
 .vs
 MemoryWarden/obj
 Settings.settings
+bin
+Resources
+WorkerThread.cs

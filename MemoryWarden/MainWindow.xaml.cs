@@ -15,6 +15,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Forms;
 using System.Drawing;
+using System.Collections.ObjectModel;
 
 namespace MemoryWarden
 {
@@ -24,17 +25,14 @@ namespace MemoryWarden
     public partial class MainWindow : Window
     {
         private NotifyIcon trayIcon;
-        //private WorkerThread workerThread;
-        //private Thread workerThreadContainer;
-        //public uint warning1Threshold { get; }
-        private WarningWindow warningWindow;
         private System.Windows.Forms.Timer checkMemoryTimer;
-        private List<WarningEvent> warnings;
+        private ObservableCollection<WarningEvent> warnings;
         private uint TEMPRESETTHRESHOLD = 5;
 
         public MainWindow()
         {
             InitializeComponent();
+            this.DataContext = this;
 
             //Create tray icon
             trayIcon = new NotifyIcon();
@@ -42,10 +40,44 @@ namespace MemoryWarden
             trayIcon.Icon = Properties.Resources.icontest;
             trayIcon.MouseClick += trayIconClicked;
             trayIcon.Visible = true;
+
+            //Programmatically build warnings table for user to modify
+            warningsDataGrid.AutoGenerateColumns = false;
+            warningsDataGrid.ItemsSource = null;
+
+            //Column: warning type
+            DataGridComboBoxColumn warningTypeColumn = new DataGridComboBoxColumn();
+            warningTypeColumn.Header = "Warning Type";
+            warningTypeColumn.ItemsSource = Enum.GetNames(typeof(WarningType));
+            System.Windows.Data.Binding warningTypeColumnBind = new System.Windows.Data.Binding("typeText");
+            warningTypeColumnBind.Mode = BindingMode.TwoWay;
+            warningTypeColumn.SelectedItemBinding = warningTypeColumnBind;
+
+            //Column: treshold value
+            DataGridTextColumn tresholdValueColumn = new DataGridTextColumn();
+            tresholdValueColumn.Header = "Warning triggers at this memory %";
+            System.Windows.Data.Binding tresholdValueColumnBind = new System.Windows.Data.Binding("thresholdText");
+            tresholdValueColumnBind.Mode = BindingMode.TwoWay;
+            tresholdValueColumn.Binding = tresholdValueColumnBind;
+            
+            //Add columns in desired order
+            warningsDataGrid.Columns.Clear();
+            warningsDataGrid.Columns.Add(warningTypeColumn);
+            warningsDataGrid.Columns.Add(tresholdValueColumn);
+
+            //Add initial rows
+            //warnings = new List<WarningEvent>();
+            warnings = new ObservableCollection<WarningEvent>();
+            warnings.Add(new WarningEvent(35, WarningType.aggressive));
+            warnings.Add(new WarningEvent(75, WarningType.passive));
+            warnings.Add(new WarningEvent(95, WarningType.kill));
+            warningsDataGrid.ItemsSource = warnings;
+            
         }
 
         private void TypeDigitsOnly(object sender, TextCompositionEventArgs e)
         {
+            //Called when the user types into the a text box, to block non-digits
             char c = Convert.ToChar(e.Text);
             if (Char.IsDigit(c))
             {
@@ -60,20 +92,11 @@ namespace MemoryWarden
 
         private void EnsureFrequencyMakesSense(object sender, KeyboardFocusChangedEventArgs e)
         {
+            //Called when the user is done typing in a frequency time into the text box
             if ((frequencyTextBox.Text.Length == 0) || (frequencyTextBox.Text == "0"))
             {
                 frequencyTextBox.Text = "1";
             }
-        }
-
-        private void pw1Unchecked(object sender, RoutedEventArgs e)
-        {
-            if (pw1TextBox != null) pw1TextBox.IsEnabled = false;
-        }
-
-        private void pw1Checked(object sender, RoutedEventArgs e)
-        {
-            if (pw1TextBox != null) pw1TextBox.IsEnabled = true;
         }
 
         private void WindowClosed(object sender, EventArgs e)
@@ -83,10 +106,21 @@ namespace MemoryWarden
 
         private void okButtonClicked(object sender, EventArgs e)
         {
-            //First perform validation checks
+            //Perform validation checks, then start timer to monitor RAM if everything looks good.
+            
+            //Update the time frequency number for the timer
             int frequency = Convert.ToInt32(frequencyTextBox.Text);
             if (timeFrame.SelectedIndex == 1) frequency *= 60;//Minutes to seconds
             frequency *= 1000;//Seconds to MS
+
+            //Check that there are warnings in the warnings box
+            if (warnings.Count == 0)
+            {
+                Console.WriteLine("No warnings made.");
+                return;
+            }
+
+            //TODO convert text to numbers for each warning
 
             //Hide the main window
             this.WindowState = System.Windows.WindowState.Minimized;
@@ -104,17 +138,8 @@ namespace MemoryWarden
                     }
                 }
             }
-
-            //Prepare lits of warning thresholds
-            //List<uint> passiveThresholds = new List<uint>();
-            //passiveThresholds.Add(Convert.ToUInt16(pw1TextBox.Text));//TEMPORARY
-            //List<uint> aggressiveThresholds = new List<uint>();
-            warnings = new List<WarningEvent>();
-            warnings.Add(new WarningEvent(Convert.ToUInt16(pw1TextBox.Text), WarningType.passive));
-            //TEMPORARY
-            //if (killThreshold > 0) warnings.Add(new WarningEvent(killThreshold, WarningType.kill));
             
-            
+            //Start timer
             checkMemoryTimer = new System.Windows.Forms.Timer();
             checkMemoryTimer.Interval = frequency;
             checkMemoryTimer.Tick += CheckMemoryAndCreateWarnings;
@@ -134,10 +159,7 @@ namespace MemoryWarden
                     if (memoryUsage >= warning.threshold)
                     {
                         warning.enabled = false;
-                        //OnThresholdReached(warning);
                         warning.warningWindow = new WarningWindow(warning.threshold, warning.type);
-                        //warning.warningWindow.DataContext = this;
-                        //warning.warningWindow.ShowInTaskbar = false;
                         warning.warningWindow.Show();
                     }
                 }
@@ -151,15 +173,7 @@ namespace MemoryWarden
                 }
             }
         }
-
-        private void WorkerThread_ThresholdReached(object sender, WarningEvent warning)
-        {
-            warningWindow = new WarningWindow(warning.threshold, warning.type);
-            //warningWindow.DataContext = this;
-            warningWindow.Show();
-            Console.WriteLine("Got the event, threadid=" + Thread.CurrentThread.ManagedThreadId);
-        }
-
+        
         private void trayIconClicked(object sender, System.Windows.Forms.MouseEventArgs e)
         {
             this.WindowState = System.Windows.WindowState.Normal;
@@ -169,13 +183,18 @@ namespace MemoryWarden
 
         private void exitButtonClicked(object sender, RoutedEventArgs e)
         {
-            /*if (workerThread != null)
-            {
-                workerThread.keepRunning = false;
-                //workerThreadContainer.Interrupt();
-                workerThreadContainer.Abort();
-            }*/
             this.Close();
+        }
+
+        private void AddWarningClicked(object sender, RoutedEventArgs e)
+        {
+            warnings.Add(new WarningEvent(90, WarningType.kill));
+        }
+
+        private void RemoveWarningClicked(object sender, RoutedEventArgs e)
+        {
+            WarningEvent selectedWarning = (WarningEvent)warningsDataGrid.SelectedItem;
+            if (selectedWarning != null) warnings.Remove(selectedWarning);
         }
     }
 }
