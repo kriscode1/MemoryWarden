@@ -83,6 +83,11 @@ namespace MemoryWarden
 
         private void okButtonClicked(object sender, EventArgs e)
         {
+            //First perform validation checks
+            int frequency = Convert.ToInt32(frequencyTextBox.Text);
+            if (timeFrame.SelectedIndex == 1) frequency *= 60;//Minutes to seconds
+            frequency *= 1000;//Seconds to MS
+
             //Hide the main window
             this.WindowState = System.Windows.WindowState.Minimized;
             this.ShowInTaskbar = false;
@@ -109,26 +114,9 @@ namespace MemoryWarden
             //TEMPORARY
             //if (killThreshold > 0) warnings.Add(new WarningEvent(killThreshold, WarningType.kill));
             
-
-            /*if (workerThread != null)
-            {
-                //Kill the old thread, user changed settings
-                workerThread.keepRunning = false;
-                workerThreadContainer.Abort();
-                while (workerThreadContainer.IsAlive) Thread.Sleep(1);
-                workerThreadContainer = null;
-                workerThread = null;
-            }
-            workerThread = new WorkerThread(passiveThresholds, aggressiveThresholds, 0, 5, 1000);
-            workerThread.ThresholdReached += WorkerThread_ThresholdReached;
-            workerThreadContainer = new Thread(new ThreadStart(workerThread.TrackMemoryAndCreateWarnings));
-            workerThreadContainer.Priority = ThreadPriority.Highest;
-            workerThreadContainer.SetApartmentState(ApartmentState.STA);
-            workerThreadContainer.Start();*/
-            //workerThread.ThresholdReached += new EventHandler<WarningEvent>(WorkerThread_ThresholdReached);
-
+            
             checkMemoryTimer = new System.Windows.Forms.Timer();
-            checkMemoryTimer.Interval = 2000;
+            checkMemoryTimer.Interval = frequency;
             checkMemoryTimer.Tick += CheckMemoryAndCreateWarnings;
             checkMemoryTimer.Start();
         }

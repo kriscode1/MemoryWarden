@@ -8,21 +8,21 @@
         Title="Memory Warden" SizeToContent="WidthAndHeight" ResizeMode="NoResize" HorizontalAlignment="Left" VerticalAlignment="Top" ScrollViewer.VerticalScrollBarVisibility="Disabled" Cursor="" Closed="WindowClosed">
     <StackPanel x:Name="Vertical_Stack_Panel" HorizontalAlignment="Left" VerticalAlignment="Top" ScrollViewer.VerticalScrollBarVisibility="Disabled">
         <StackPanel x:Name="checkFrequency" HorizontalAlignment="Left" VerticalAlignment="Top" Orientation="Horizontal" Margin="10">
-            <Label x:Name="label2" Content="Check memory (RAM%) every" FontSize="14"/>
-            <TextBox x:Name="frequencyTextBox" Text="2" HorizontalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Center" VerticalContentAlignment="Center" FontSize="14" Padding="0" Margin="0,0,10,0" UndoLimit="5" MaxLines="1" MaxLength="8" MinWidth="45" PreviewTextInput="TypeDigitsOnly" LostKeyboardFocus="EnsureFrequencyMakesSense"/>
-            <ComboBox x:Name="timeFrame" SelectedIndex="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" FontSize="14" Width="80">
-                <ComboBoxItem x:Name="option_seconds" Content="seconds" VerticalContentAlignment="Center" VerticalAlignment="Top" FontSize="14" HorizontalContentAlignment="Left"/>
-                <ComboBoxItem x:Name="option_minutes" Content="minutes" VerticalContentAlignment="Center" VerticalAlignment="Top" FontSize="14" HorizontalContentAlignment="Left"/>
+            <Label x:Name="label2" Content="Check memory (RAM%) every"/>
+            <TextBox x:Name="frequencyTextBox" Text="2" HorizontalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Center" VerticalContentAlignment="Center" Padding="0" Margin="0,0,10,0" UndoLimit="5" MaxLines="1" MaxLength="8" MinWidth="45" PreviewTextInput="TypeDigitsOnly" LostKeyboardFocus="EnsureFrequencyMakesSense"/>
+            <ComboBox x:Name="timeFrame" SelectedIndex="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Width="80">
+                <ComboBoxItem x:Name="option_seconds" Content="seconds" VerticalContentAlignment="Center" VerticalAlignment="Top" HorizontalContentAlignment="Left"/>
+                <ComboBoxItem x:Name="option_minutes" Content="minutes" VerticalContentAlignment="Center" VerticalAlignment="Top" HorizontalContentAlignment="Left"/>
             </ComboBox>
         </StackPanel>
         <StackPanel x:Name="passiveWarning1" Orientation="Horizontal" HorizontalAlignment="Left" Margin="10,0,10,10">
-            <CheckBox x:Name="pw1CheckBox" Content="Passive Warning 1 " IsChecked="True" VerticalContentAlignment="Center" FontSize="14" Unchecked="pw1Unchecked" Checked="pw1Checked"/>
-            <TextBox x:Name="pw1TextBox" Text="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="14" Width="35" Margin="15,0,5,0" Height="21" VerticalScrollBarVisibility="Disabled" MaxLength="3" MaxLines="1" UndoLimit="5" PreviewTextInput="TypeDigitsOnly" AllowDrop="False"/>
-            <Label x:Name="label" Content="%" FontSize="14"/>
+            <CheckBox x:Name="pw1CheckBox" Content="Passive Warning 1 " IsChecked="True" VerticalContentAlignment="Center" Unchecked="pw1Unchecked" Checked="pw1Checked"/>
+            <TextBox x:Name="pw1TextBox" Text="30" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Center" HorizontalAlignment="Center" Width="35" Margin="15,0,5,0" Height="21" VerticalScrollBarVisibility="Disabled" MaxLength="3" MaxLines="1" UndoLimit="5" PreviewTextInput="TypeDigitsOnly" AllowDrop="False"/>
+            <Label x:Name="label" Content="%"/>
         </StackPanel>
         <StackPanel x:Name="Buttons" Orientation="Horizontal" Margin="10,0,10,10" FlowDirection="RightToLeft">
-            <Button x:Name="exitButton" Content="Exit" Margin="0,0,10,0" FontSize="14" Width="80" Click="exitButtonClicked"/>
-            <Button x:Name="okButton" Content="OK" Width="80" Margin="0,0,10,0" FontSize="14" Click="okButtonClicked"/>
+            <Button x:Name="exitButton" Content="Exit" Margin="0,0,10,0" Width="80" Click="exitButtonClicked"/>
+            <Button x:Name="okButton" Content="OK" Width="80" Margin="0,0,10,0" Click="okButtonClicked"/>
         </StackPanel>
     </StackPanel>
 </Window>

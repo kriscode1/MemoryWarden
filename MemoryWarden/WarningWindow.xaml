@@ -5,20 +5,43 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MemoryWarden"
         mc:Ignorable="d"
-        Title="WARNING from Memory Warden" ScrollViewer.VerticalScrollBarVisibility="Disabled" SizeToContent="WidthAndHeight">
-    <StackPanel ScrollViewer.VerticalScrollBarVisibility="Disabled">
-        <Label x:Name="label" Content="WARNING" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" FontSize="14" ScrollViewer.VerticalScrollBarVisibility="Disabled"/>
-        <StackPanel x:Name="memoryRow" Orientation="Horizontal">
-            <Label x:Name="label1" Content="System memory usage exceeding " HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14"/>
-            <Label x:Name="memoryValue" FontSize="14" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ScrollViewer.VerticalScrollBarVisibility="Disabled" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        Title="WARNING from Memory Warden" ScrollViewer.VerticalScrollBarVisibility="Disabled" SizeToContent="WidthAndHeight" VerticalAlignment="Top" HorizontalAlignment="Left">
+    <Window.Resources>
+        
+    </Window.Resources>
+    <Grid ScrollViewer.VerticalScrollBarVisibility="Disabled">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="30"/>
+            <RowDefinition Height="30"/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <Label x:Name="label" Content="WARNING" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ScrollViewer.VerticalScrollBarVisibility="Disabled" Padding="5"/>
+        <StackPanel x:Name="memoryRow" Orientation="Horizontal" Grid.Row="1">
+            <Label x:Name="label1" Content="System memory usage exceeding " HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Label x:Name="memoryValue" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" ScrollViewer.VerticalScrollBarVisibility="Disabled" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="0,5"/>
             <Label x:Name="label2" Content="%" HorizontalAlignment="Center" VerticalAlignment="Center"/>
         </StackPanel>
-        <DataGrid x:Name="memoryHogs" FontSize="14" IsReadOnly="True" MinHeight="300" MaxHeight="300" AutoGenerateColumns="False">
+        <DataGrid x:Name="memoryHogs" FontSize="14" IsReadOnly="True" AutoGenerateColumns="False" CanUserSortColumns="False" CanUserResizeRows="False" HorizontalScrollBarVisibility="Disabled" CanUserReorderColumns="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Grid.Row="2">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="RAM %" Binding="{Binding ramPercent}" SortDirection="Descending"/>
+                <DataGridTextColumn Header="RAM %" Binding="{Binding RamPercent}" SortDirection="Descending">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
                 <DataGridTextColumn Header="Process Name" Binding="{Binding Name}"/>
-                <DataGridTextColumn Header="PID" Binding="{Binding PID}"/>
+                <DataGridTextColumn Header="PID" Binding="{Binding PID}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Right" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
             </DataGrid.Columns>
         </DataGrid>
-    </StackPanel>
+    </Grid>
 </Window>
