@@ -22,5 +22,8 @@
         <Style TargetType="Button">
             <Setter Property="FontSize" Value="14"/>
         </Style>
+        <Style TargetType="GroupBox">
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
     </Application.Resources>
 </Application>

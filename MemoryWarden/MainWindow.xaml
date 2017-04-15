@@ -6,10 +6,13 @@
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:MemoryWarden"
         mc:Ignorable="d"
-        Title="Memory Warden" SizeToContent="WidthAndHeight" ResizeMode="NoResize" HorizontalAlignment="Left" VerticalAlignment="Top" ScrollViewer.VerticalScrollBarVisibility="Disabled" Cursor="" Closed="WindowClosed">
+        Title="Memory Warden" SizeToContent="WidthAndHeight" ResizeMode="NoResize" HorizontalAlignment="Left" VerticalAlignment="Top" ScrollViewer.VerticalScrollBarVisibility="Disabled" Cursor="" Closed="WindowClosed" Background="White">
     <Window.Resources>
     </Window.Resources>
     <StackPanel x:Name="Vertical_Stack_Panel" HorizontalAlignment="Left" VerticalAlignment="Top" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+        <StackPanel.Background>
+            <SolidColorBrush Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}"/>
+        </StackPanel.Background>
         <StackPanel x:Name="checkFrequency" HorizontalAlignment="Left" VerticalAlignment="Top" Orientation="Horizontal" Margin="10">
             <Label x:Name="label2" Content="Check memory (RAM%) every"/>
             <TextBox x:Name="frequencyTextBox" Text="2" HorizontalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Center" VerticalContentAlignment="Center" Padding="0" Margin="0,0,10,0" UndoLimit="5" MaxLines="1" MaxLength="8" MinWidth="45" PreviewTextInput="TypeDigitsOnly" LostKeyboardFocus="EnsureFrequencyMakesSense"/>

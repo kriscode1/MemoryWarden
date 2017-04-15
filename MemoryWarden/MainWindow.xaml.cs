@@ -57,7 +57,7 @@ namespace MemoryWarden
             DataGridTextColumn thresholdValueColumn = new DataGridTextColumn();
             thresholdValueColumn.Header = "Warning triggers at this memory %";
             thresholdValueColumn.SortDirection = ListSortDirection.Ascending;//Won't actually sort by this column, just here for looks
-            System.Windows.Data.Binding thresholdValueColumnBind = new System.Windows.Data.Binding("thresholdText");
+            System.Windows.Data.Binding thresholdValueColumnBind = new System.Windows.Data.Binding("threshold");
             thresholdValueColumnBind.Mode = BindingMode.TwoWay;
             thresholdValueColumnBind.UpdateSourceTrigger = UpdateSourceTrigger.LostFocus;
             thresholdValueColumn.Binding = thresholdValueColumnBind;
@@ -74,7 +74,7 @@ namespace MemoryWarden
             warnings.Add(new WarningEvent(98, WarningType.kill));
             warningsDataGrid.ItemsSource = warnings;
 
-            //Enable sorting on the numeric value of threshold, not shown as a column
+            //Enable sorting on the numeric value of threshold
             warningsDataGrid.Items.SortDescriptions.Add(new SortDescription("threshold", ListSortDirection.Ascending));
             warningsDataGrid.Items.IsLiveSorting = true;
         }
@@ -130,11 +130,12 @@ namespace MemoryWarden
             this.WindowState = System.Windows.WindowState.Minimized;
             this.ShowInTaskbar = false;
 
-            //Close open windows if there are any
+            //Close open windows if there are any, and re-enable their warnings
             if (warnings != null)
             {
                 foreach (WarningEvent warning in warnings)
                 {
+                    warning.enabled = true;
                     if (warning.warningWindow != null)
                     {
                         warning.warningWindow.Close();
@@ -170,7 +171,7 @@ namespace MemoryWarden
                 else
                 {
                     //Check if the memory went low enough to re-enable the warning
-                    if (memoryUsage <= (warning.threshold - TEMPRESETTHRESHOLD))
+                    if ((TEMPRESETTHRESHOLD < warning.threshold) && (memoryUsage <= (warning.threshold - TEMPRESETTHRESHOLD)))
                     {
                         warning.enabled = true;
                     }
@@ -183,11 +184,25 @@ namespace MemoryWarden
             this.WindowState = System.Windows.WindowState.Normal;
             this.ShowInTaskbar = true;
             this.Activate();
+            if (checkMemoryTimer != null)
+            {
+                //Disable making warnings while user is changing settings
+                checkMemoryTimer.Stop();
+                checkMemoryTimer.Dispose();
+            }
         }
 
         private void exitButtonClicked(object sender, RoutedEventArgs e)
         {
-            this.Close();
+            foreach (WarningEvent warning in warnings)
+            {
+                if (warning.warningWindow != null)
+                {
+                    warning.warningWindow.Close();
+                }
+            }
+            System.Windows.Application.Current.Shutdown();
+            this.Close();//Yes, the application is probably still running here
         }
 
         private void AddWarningClicked(object sender, RoutedEventArgs e)

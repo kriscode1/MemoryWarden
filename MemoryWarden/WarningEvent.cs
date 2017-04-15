@@ -12,13 +12,31 @@ namespace MemoryWarden
 
     public class WarningEvent : INotifyPropertyChanged
     {
-        public WarningType type { get; }
-        public uint threshold { get; set; }
-        private string thresholdTextHidden;
+        private WarningType typeHidden;
+        private uint thresholdHidden;
 
-        //Versions of the above for the user to modify
-        public string typeText { get; set; }
-        public string thresholdText {
+        //Versions of the above for the user to get/modify
+        public WarningType type { get { return typeHidden; } }
+        public uint threshold {
+            get { return thresholdHidden; }
+            set {
+                thresholdHidden = value;
+                OnPropertyChanged("threshold");
+            }
+        }
+        public string typeText {
+            get { return typeHidden.ToString(); }
+            set {
+                WarningType result;
+                if (Enum.TryParse<WarningType>(value, out result))
+                {
+                    typeHidden = result;
+                    OnPropertyChanged("typeText");
+                    OnPropertyChanged("type");
+                }
+            }
+        }
+        /*public string thresholdText {
             get { return thresholdTextHidden; }
             set
             {
@@ -32,7 +50,7 @@ namespace MemoryWarden
                 OnPropertyChanged("thresholdText");
                 return;
             }
-        }
+        }*/
         
         public bool enabled { get; set; }
         public WarningWindow warningWindow;
@@ -48,21 +66,18 @@ namespace MemoryWarden
 
         public WarningEvent(uint threshold, WarningType type)
         {
-            this.threshold = threshold;
-            this.thresholdText = threshold.ToString();
-            this.type = type;
-            this.typeText = type.ToString();
+            thresholdHidden = threshold;
+            typeHidden = type;
             this.enabled = true;
-            Console.Write("writing " + threshold + " " + thresholdText);
         }
 
-        private bool HasDigitsOnly(string text)
+        /*private bool HasDigitsOnly(string text)
         {
             foreach (char c in text)
             {
                 if (c < '0' || c > '9') return false;
             }
             return true;
-        }
+        }*/
     }
 }
