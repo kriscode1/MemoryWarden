@@ -60,6 +60,7 @@ namespace MemoryWarden
             System.Windows.Data.Binding thresholdValueColumnBind = new System.Windows.Data.Binding("threshold");
             thresholdValueColumnBind.Mode = BindingMode.TwoWay;
             thresholdValueColumnBind.UpdateSourceTrigger = UpdateSourceTrigger.LostFocus;
+            thresholdValueColumnBind.ValidationRules.Add(new PercentsValidator());
             thresholdValueColumn.Binding = thresholdValueColumnBind;
             
             //Add columns in desired order
@@ -94,10 +95,21 @@ namespace MemoryWarden
             base.OnPreviewTextInput(e);
         }
 
+        private bool HasDigitsOnly(string text)
+        {
+            foreach (char c in text)
+            {
+                if ((c < '0') || (c > '9')) return false;
+            }
+            return true;
+        }
+
         private void EnsureFrequencyMakesSense(object sender, KeyboardFocusChangedEventArgs e)
         {
             //Called when the user is done typing in a frequency time into the text box
-            if ((frequencyTextBox.Text.Length == 0) || (frequencyTextBox.Text == "0"))
+            if ((frequencyTextBox.Text.Length == 0) || 
+                (frequencyTextBox.Text == "0") ||
+                (HasDigitsOnly(frequencyTextBox.Text) == false))
             {
                 frequencyTextBox.Text = "1";
             }
@@ -108,67 +120,104 @@ namespace MemoryWarden
             trayIcon.Visible = false;
         }
 
+        private void CloseAnOpenWarningWindow()
+        {
+            //Closes the open warning window, if found.
+            if (warnings == null) return;
+            if (warnings.Count == 0) return;
+            foreach (WarningEvent warning in warnings)
+            {
+                if (warning.warningWindow != null)
+                {
+                    warning.warningWindow.StopRefreshTimer();
+                    warning.warningWindow.Close();
+                    warning.warningWindow = null;
+                    break;//Should never be more than one window open now
+                }
+            }
+        }
+
         private void okButtonClicked(object sender, EventArgs e)
         {
             //Perform validation checks, then start timer to monitor RAM if everything looks good.
             
-            //Update the time frequency number for the timer
+            //Get the time frequency number for the timer
+            //Number in box should already look good
             int frequency = Convert.ToInt32(frequencyTextBox.Text);
             if (timeFrame.SelectedIndex == 1) frequency *= 60;//Minutes to seconds
             frequency *= 1000;//Seconds to MS
 
             //Check that there are warnings in the warnings box
+            if (warnings == null)
+            {
+                Console.WriteLine("Error: Warnings list is empty. Must have been set null somewhere.");
+                return;
+            }
             if (warnings.Count == 0)
             {
                 Console.WriteLine("No warnings made.");
                 return;
             }
 
-            //TODO convert text to numbers for each warning
+            //Check that there is at most one kill warning
+            int killWarningCount = 0;
+            foreach (WarningEvent warning in warnings)
+            {
+                if (warning.type == WarningType.kill)
+                {
+                    if (++killWarningCount > 1)
+                    {
+                        Console.WriteLine("More than one kill warning specified.");
+                        return;
+                    }
+                }
+            }
+
+            //Check if there are duplicate warnings for the same threshold
+            HashSet<uint> duplicatesChecker = new HashSet<uint>();
+            foreach (WarningEvent warning in warnings)
+            {
+                if (duplicatesChecker.Add(warning.threshold) == false)
+                {
+                    Console.WriteLine("Duplicate warning entered for threshold=" + warning.threshold);
+                    return;
+                }
+            }
 
             //Hide the main window
             this.WindowState = System.Windows.WindowState.Minimized;
             this.ShowInTaskbar = false;
 
-            //Close open windows if there are any, and re-enable their warnings
-            if (warnings != null)
-            {
-                foreach (WarningEvent warning in warnings)
-                {
-                    warning.enabled = true;
-                    if (warning.warningWindow != null)
-                    {
-                        warning.warningWindow.Close();
-                        warning.warningWindow = null;
-                    }
-                }
-            }
+            //Close an open window if any, and re-enable old warnings
+            CloseAnOpenWarningWindow();
+            foreach (WarningEvent warning in warnings) warning.enabled = true;
+
+            //Sort the warnings list from least to greatest
+            // This is for CheckMemoryAndCreateWarnings() to only open one window at a time,
+            // but avoids needing to sort every second.
+            List<WarningEvent> sortHelper = new List<WarningEvent>(warnings);
+            sortHelper.Sort((x, y) => x.threshold.CompareTo(y.threshold));
+            warnings.Clear();//Clear and Add necessary to preserve binding settings.
+            foreach (WarningEvent warning in sortHelper) warnings.Add(warning);
             
             //Start timer
             checkMemoryTimer = new System.Windows.Forms.Timer();
             checkMemoryTimer.Interval = frequency;
             checkMemoryTimer.Tick += CheckMemoryAndCreateWarnings;
+            CheckMemoryAndCreateWarnings(this, null);//Call once so user doesn't wait
             checkMemoryTimer.Start();
         }
 
         private void CheckMemoryAndCreateWarnings(object sender, EventArgs e)
         {
+            //Checks if a warning window should me made.
+            //Only one warning window is permitted at a time
             double memoryUsage = SystemMemory.GetMemoryPercentUsed();
 
-            //Check which warnings should be activated
+            //Check which warnings should be re-enabled, assume sorted ascending
             foreach (WarningEvent warning in warnings)
             {
-                if (warning.enabled)
-                {
-                    //Check if the memory is too high, then activate warning if so
-                    if (memoryUsage >= warning.threshold)
-                    {
-                        warning.enabled = false;
-                        warning.warningWindow = new WarningWindow(warning.threshold, warning.type);
-                        warning.warningWindow.Show();
-                    }
-                }
-                else
+                if (warning.enabled == false)
                 {
                     //Check if the memory went low enough to re-enable the warning
                     if ((TEMPRESETTHRESHOLD < warning.threshold) && (memoryUsage <= (warning.threshold - TEMPRESETTHRESHOLD)))
@@ -176,6 +225,40 @@ namespace MemoryWarden
                         warning.enabled = true;
                     }
                 }
+                else break;//Must have re-enabled all we can
+            }
+
+            //Now find the index of the latest warning to activate
+            // This index skips duplicate, old warnings, so the user
+            // will only see one popup window at a time.
+            int lastWarningIndexToActivate = -1;
+            for (int n = 0; n < warnings.Count; ++n)
+            {
+                if (memoryUsage >= warnings[n].threshold)
+                {
+                    if (warnings[n].enabled) lastWarningIndexToActivate = n;
+                }
+                else break;//Will be no warnings to activate above this one
+            }
+
+            if (lastWarningIndexToActivate != -1)
+            {
+                //First, disable all warnings that are going to be skipped over
+                for (int n = 0; n < lastWarningIndexToActivate; ++n)
+                {
+                    warnings[n].enabled = false;
+                }
+
+                //Terminate any warning window still open
+                CloseAnOpenWarningWindow();
+
+                //Open the new warning window
+                warnings[lastWarningIndexToActivate].enabled = false;
+                warnings[lastWarningIndexToActivate].warningWindow = new WarningWindow(
+                    warnings[lastWarningIndexToActivate].threshold, 
+                    warnings[lastWarningIndexToActivate].type);
+                warnings[lastWarningIndexToActivate].warningWindow.Show();
+                Console.WriteLine("Window created.");
             }
         }
         
@@ -190,17 +273,14 @@ namespace MemoryWarden
                 checkMemoryTimer.Stop();
                 checkMemoryTimer.Dispose();
             }
+
+            //Check existing warnings for any open windows before the user changes something
+            CloseAnOpenWarningWindow();
         }
 
         private void exitButtonClicked(object sender, RoutedEventArgs e)
         {
-            foreach (WarningEvent warning in warnings)
-            {
-                if (warning.warningWindow != null)
-                {
-                    warning.warningWindow.Close();
-                }
-            }
+            CloseAnOpenWarningWindow();
             System.Windows.Application.Current.Shutdown();
             this.Close();//Yes, the application is probably still running here
         }
@@ -214,6 +294,12 @@ namespace MemoryWarden
         {
             WarningEvent selectedWarning = (WarningEvent)warningsDataGrid.SelectedItem;
             if (selectedWarning != null) warnings.Remove(selectedWarning);
+        }
+
+        private void SelectedWarningsChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (warningsDataGrid.SelectedItems.Count == 0) removeWarningButton.IsEnabled = false;
+            else removeWarningButton.IsEnabled = true;
         }
     }
 }

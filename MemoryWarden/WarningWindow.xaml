@@ -6,9 +6,6 @@
         xmlns:local="clr-namespace:MemoryWarden"
         mc:Ignorable="d"
         Title="WARNING from Memory Warden" ScrollViewer.VerticalScrollBarVisibility="Disabled" SizeToContent="WidthAndHeight" VerticalAlignment="Top" HorizontalAlignment="Left">
-    <Window.Resources>
-
-    </Window.Resources>
     <Window.Background>
         <SolidColorBrush Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}"/>
     </Window.Background>
@@ -34,6 +31,11 @@
             <Label x:Name="label2_Copy" Content="%" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0.5"/>
         </StackPanel>
         <DataGrid x:Name="memoryHogs" FontSize="14" IsReadOnly="True" AutoGenerateColumns="False" CanUserSortColumns="False" CanUserResizeRows="False" HorizontalScrollBarVisibility="Disabled" CanUserReorderColumns="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Grid.Row="3">
+            <DataGrid.Resources>
+                <Style TargetType="DataGridRow">
+                    <EventSetter Event="MouseDoubleClick" Handler="Row_DoubleClick"/>
+                </Style>
+            </DataGrid.Resources>
             <DataGrid.Columns>
                 <DataGridTextColumn Header="RAM %" Binding="{Binding ramPercentText, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" SortDirection="Descending">
                     <DataGridTextColumn.ElementStyle>

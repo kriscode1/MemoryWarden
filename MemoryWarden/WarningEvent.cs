@@ -12,6 +12,8 @@ namespace MemoryWarden
 
     public class WarningEvent : INotifyPropertyChanged
     {
+        //Info to describe when a warning should be given to the user.
+
         private WarningType typeHidden;
         private uint thresholdHidden;
 
@@ -36,21 +38,6 @@ namespace MemoryWarden
                 }
             }
         }
-        /*public string thresholdText {
-            get { return thresholdTextHidden; }
-            set
-            {
-                //User can set text, but the uint is modified here
-                if (value == null) { threshold = 0; return; }
-                if (value.Length == 0) { threshold = 0; return; }
-                if (HasDigitsOnly(value) == false) { threshold = 0; return; }
-                threshold = Convert.ToUInt32(value);
-                thresholdTextHidden = value;
-                OnPropertyChanged("threshold");
-                OnPropertyChanged("thresholdText");
-                return;
-            }
-        }*/
         
         public bool enabled { get; set; }
         public WarningWindow warningWindow;
@@ -70,14 +57,5 @@ namespace MemoryWarden
             typeHidden = type;
             this.enabled = true;
         }
-
-        /*private bool HasDigitsOnly(string text)
-        {
-            foreach (char c in text)
-            {
-                if (c < '0' || c > '9') return false;
-            }
-            return true;
-        }*/
     }
 }

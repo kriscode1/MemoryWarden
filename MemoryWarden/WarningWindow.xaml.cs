@@ -24,6 +24,8 @@ namespace MemoryWarden
 
     public class ProcessRow : INotifyPropertyChanged
     {
+        //Contains the bound data for the table of memory hog processes.
+
         private double ramPercentHidden;
         public double ramPercent {
             get { return ramPercentHidden; }
@@ -74,15 +76,14 @@ namespace MemoryWarden
             memoryValue.Content = memoryExceededThreshold;
             SetSystemMemoryPercentAndLabel();
 
+            //Build the table with data
             RefreshProcessTable();
-            
+            memoryHogs.ItemsSource = processTable;
+
             //Enable live sorting in the window too, if data updates but I don't resort
             memoryHogs.Items.SortDescriptions.Add(new SortDescription("ramPercent", ListSortDirection.Descending));
             memoryHogs.Items.IsLiveSorting = true;
             
-            //Set the data
-            memoryHogs.ItemsSource = processTable;
-
             //Be aggressive
             if (warningType == WarningType.aggressive)
             {
@@ -97,30 +98,38 @@ namespace MemoryWarden
             refreshTimer.Start();
         }
 
+        public void StopRefreshTimer()
+        {
+            refreshTimer.Stop();
+            refreshTimer.Dispose();
+        }
+
         private void RefreshTimer_Tick(object sender, EventArgs e)
         {
+            //Updates the window once per second so it looks responsive.
+
             RefreshProcessTable();
-            //memoryHogs.ItemsSource = null;
-            //memoryHogs.ItemsSource = processTable;
             memoryHogs.Items.Refresh();
+            //Refresh seems the same as setting Items to null
+            // and resetting again. Look into this further. 
             SetSystemMemoryPercentAndLabel();
         }
 
         private void RefreshProcessLists()
         {
-            //Get a list of processes
+            //Get a list of processes, outputs to processes and processesSorted.
             processes = Process.GetProcesses();
 
             //Build the sorted list
             processesSorted = new List<Process>(processes);
             //Negate the comparison to sort descending
             processesSorted.Sort((x, y) => -x.WorkingSet64.CompareTo(y.WorkingSet64));
-
         }
 
         private void CalculateTotalProcessMemory()
         {
-            //Calculate total memory used
+            //Calculate total memory used, outputs to totalProcessesMemory.
+
             // Add process memory as a total instead of using the system total,
             // used for consistent percentages.
             totalProcessesMemory = 0;
@@ -132,6 +141,8 @@ namespace MemoryWarden
 
         private void RefreshProcessTable(double memoryLimit = 20.0, int minimumProcessCount = 8)
         {
+            //Do all the work of rebuilding the processTable, attempting efficiency.
+
             RefreshProcessLists();
             CalculateTotalProcessMemory();
             ObservableCollection<ProcessRow> processTableTemp = new ObservableCollection<ProcessRow>();
@@ -175,6 +186,7 @@ namespace MemoryWarden
                 }
 
                 //Cleanup removed processes
+                ObservableCollection<ProcessRow> processesToRemove = new ObservableCollection<ProcessRow>();
                 foreach (ProcessRow originalRow in processTable)
                 {
                     bool matchFound = false;
@@ -189,27 +201,31 @@ namespace MemoryWarden
                     if (!matchFound)
                     {
                         //Old process not in new table
-                        processTable.Remove(originalRow);
+                        processesToRemove.Add(originalRow);
                     }
+                }
+                foreach (ProcessRow processToRemove in processesToRemove)
+                {
+                    processTable.Remove(processToRemove);
                 }
             }
         }
 
         private void SetSystemMemoryPercentAndLabel()
         {
+            //Gets the system memory percent and performs GUI tasks.
+
             systemMemoryPercent = SystemMemory.GetMemoryPercentUsed();
             systemMemoryLabel.Content = string.Format("{0:F2}", systemMemoryPercent);
 
             //Calcualte colors
             double memoryGoodRatio;
-            //Used for calculating the green/red color
-            //60% or less is good, 90% or more is bad
+            // Used for calculating the green/red color
+            // 60% or less is good, 90% or more is bad
             if (systemMemoryPercent <= 60) memoryGoodRatio = 1;
             else if (systemMemoryPercent >= 90) memoryGoodRatio = 0;
-            else
-            {
-                memoryGoodRatio = (90 - systemMemoryPercent) / 30;
-            }
+            else memoryGoodRatio = (90 - systemMemoryPercent) / 30;
+
             double green = memoryGoodRatio * 0xFF;
             double red = (1 - memoryGoodRatio) * 0xFF;
             Brush systemBasedBrush = new SolidColorBrush(Color.FromArgb(0xFF, (byte)red, (byte)green, 0));
@@ -217,6 +233,54 @@ namespace MemoryWarden
             //Apply brush wherever
             systemMemoryLabel.Background = systemBasedBrush;
             warningLabel.Background = systemBasedBrush;
+        }
+
+        private void Row_DoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            //Ask the user if the process should be terminated in a popup window.
+
+            refreshTimer.Stop();
+            DataGridRow row = sender as DataGridRow;
+            ProcessRow processRow = row.Item as ProcessRow;
+            string messageText =
+                "Should Memory Warden kill this process?\n" +
+                "Name:\t" + processRow.nameText + "\n" +
+                "PID:\t" + processRow.PIDText + "\n" +
+                "Memory Usage: " + processRow.ramPercentText + "%";
+            MessageBoxResult queryUser = MessageBox.Show(this, messageText, "Kill Process", MessageBoxButton.YesNo, MessageBoxImage.Hand, MessageBoxResult.No);
+            if (queryUser == MessageBoxResult.Yes)
+            {
+                int processIndex = processesSorted.FindIndex(x => x.Id == processRow.PID);
+                if (processIndex == -1)
+                {
+                    messageText = "Cannot kill process. \nBad internal index.";
+                    DisplayErrorMessage(messageText, "Kill Process Failed");
+                    Console.WriteLine(messageText);
+                    return;
+                }
+                try { processesSorted[processIndex].Kill(); }
+                catch (Win32Exception exception)
+                {
+                    messageText = "This process could not be killed.\n" + exception.Message;
+                    DisplayErrorMessage(messageText, "Kill Process Failed");
+                }
+                catch (NotSupportedException exception)
+                {
+                    messageText = "This is a remote process and cannot be killed.\n" + exception.Message;
+                    DisplayErrorMessage(messageText, "Kill Process Failed");
+                }
+                catch (InvalidOperationException exception)
+                {
+                    messageText = "This process does not exist anymore.\n" + exception.Message;
+                    DisplayErrorMessage(messageText, "Kill Process Failed");
+                }
+            }
+            refreshTimer.Start();
+        }
+
+        private void DisplayErrorMessage(string message, string title)
+        {
+            MessageBox.Show(this, message, title, MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
         }
     }
 }
