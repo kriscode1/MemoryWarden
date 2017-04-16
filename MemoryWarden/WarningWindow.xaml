@@ -5,13 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MemoryWarden"
         mc:Ignorable="d"
-        Title="WARNING from Memory Warden" ScrollViewer.VerticalScrollBarVisibility="Disabled" SizeToContent="WidthAndHeight" VerticalAlignment="Top" HorizontalAlignment="Left">
+        Title="WARNING from Memory Warden" ScrollViewer.VerticalScrollBarVisibility="Disabled" SizeToContent="WidthAndHeight" MaxHeight="500" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" HorizontalAlignment="Left" VerticalAlignment="Top" WindowStartupLocation="CenterScreen">
     <Window.Background>
         <SolidColorBrush Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}"/>
     </Window.Background>
     <Grid ScrollViewer.VerticalScrollBarVisibility="Disabled">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="30"/>

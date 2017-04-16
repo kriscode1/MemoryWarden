@@ -20,26 +20,26 @@ namespace MemoryWarden
         private System.Windows.Forms.NotifyIcon trayIcon;
         private System.Windows.Forms.Timer checkMemoryTimer;
         private ObservableCollection<WarningEvent> warnings;
-        private uint TEMPRESETTHRESHOLD = 5;
-
+        private UserSettings userSettings;
         //Brushes
         private Brush badCellBackground;
 
         public MainWindow()
         {
             InitializeComponent();
+            Icon = SharedStatics.ToImageSource(Properties.Resources.prison);
             this.DataContext = this;
             badCellBackground = new SolidColorBrush(Color.FromArgb(128, 255, 0, 0));
 
             //Create tray icon
             trayIcon = new System.Windows.Forms.NotifyIcon();
             trayIcon.Text = "Memory Warden";
-            trayIcon.Icon = Properties.Resources.icontest;
+            trayIcon.Icon = Properties.Resources.prison;
             trayIcon.MouseClick += trayIconClicked;
             trayIcon.Visible = true;
             trayIcon.BalloonTipClicked += TrayIcon_BalloonTipClicked;
             
-            //Programmatically build warnings table for user to modify
+            //// Programmatically build warnings table for user to modify
 
             //Column: warning type
             DataGridComboBoxColumn warningTypeColumn = new DataGridComboBoxColumn();
@@ -75,7 +75,13 @@ namespace MemoryWarden
             //Enable sorting on the numeric value of threshold
             warningsDataGrid.Items.SortDescriptions.Add(new SortDescription("threshold", ListSortDirection.Ascending));
             warningsDataGrid.Items.IsLiveSorting = true;
-            
+
+            //Fill in default user settings
+            userSettings = new UserSettings();
+            warningResetThresholdTextBox.Text = userSettings.warningResetThreshold.ToString();
+            warningWindowProcessMinTextBox.Text = userSettings.warningWindowProcessMin.ToString();
+            warningWindowProcessMaxTextBox.Text = userSettings.warningWindowProcessMax.ToString();
+            warningWindowProcessPercentMinTextBox.Text = userSettings.warningWindowProcessPercentMin.ToString();
         }
 
         private void TrayIcon_BalloonTipClicked(object sender, EventArgs e)
@@ -88,35 +94,34 @@ namespace MemoryWarden
         private void TypeDigitsOnly(object sender, TextCompositionEventArgs e)
         {
             //Called when the user types into the a text box, to block non-digits
+            //Used with PreviewTextInput event
             char c = Convert.ToChar(e.Text);
-            if (Char.IsDigit(c))
+            if ((c < '0') || (c > '9'))
             {
-                e.Handled = false;
-            } else
-            {
+                //Non-digit was typed
                 //Do not let the child object handle this
                 e.Handled = true;
-            }
+            } else e.Handled = false;
             base.OnPreviewTextInput(e);
         }
 
         private bool HasDigitsOnly(string text)
         {
-            foreach (char c in text)
-            {
-                if ((c < '0') || (c > '9')) return false;
-            }
+            foreach (char c in text) if ((c < '0') || (c > '9')) return false;
             return true;
         }
 
-        private void EnsureFrequencyMakesSense(object sender, KeyboardFocusChangedEventArgs e)
+        private void ForceTextBoxToHavePositiveInt(object sender, KeyboardFocusChangedEventArgs e)
         {
-            //Called when the user is done typing in a frequency time into the text box
-            if ((frequencyTextBox.Text.Length == 0) || 
-                (frequencyTextBox.Text == "0") ||
-                (HasDigitsOnly(frequencyTextBox.Text) == false))
+            //Called when the user is done typing in a text box, to ensure a positive integer.
+            //Example: frequency text box
+            //Used with LostKeyboardFocus event
+            TextBox textBox = sender as TextBox;
+            if ((textBox.Text.Length == 0) || 
+                (textBox.Text == "0") ||
+                (HasDigitsOnly(textBox.Text) == false))
             {
-                frequencyTextBox.Text = "1";
+                textBox.Text = "1";
             }
         }
 
@@ -319,6 +324,33 @@ namespace MemoryWarden
                 }
             }
 
+            //Check and set the user's advanced settings
+            //To prevent any conflicts with an existing window, set the numbers after all validation
+            UserSettings pendingSettings = new UserSettings();
+            pendingSettings.warningResetThreshold = (uint)Convert.ToInt32(warningResetThresholdTextBox.Text);
+            if (pendingSettings.warningResetThreshold > 100)
+            {
+                Console.WriteLine("warningResetThreshold");
+                //TODO ERROR
+                return;
+            }
+            pendingSettings.warningWindowProcessMin = (uint)Convert.ToInt32(warningWindowProcessMinTextBox.Text);
+            pendingSettings.warningWindowProcessMax = (uint)Convert.ToInt32(warningWindowProcessMaxTextBox.Text);
+            if (pendingSettings.warningWindowProcessMax <= pendingSettings.warningWindowProcessMin)
+            {
+                Console.WriteLine("warningWindowProcessMax");
+                //TODO ERROR
+                return;
+            }
+            pendingSettings.warningWindowProcessPercentMin = (uint)Convert.ToInt32(warningWindowProcessPercentMinTextBox.Text);
+            if (pendingSettings.warningWindowProcessPercentMin > 100)
+            {
+                Console.WriteLine("warningWindowProcessPercentMin");
+                //TODO ERROR
+                return;
+            }
+            userSettings = pendingSettings;
+
             //Hide the main window
             this.WindowState = WindowState.Minimized;
             this.ShowInTaskbar = false;
@@ -362,7 +394,8 @@ namespace MemoryWarden
                 if (warning.enabled == false)
                 {
                     //Check if the memory went low enough to re-enable the warning
-                    if ((TEMPRESETTHRESHOLD < warning.threshold) && (memoryUsage <= (warning.threshold - TEMPRESETTHRESHOLD)))
+                    if ((userSettings.warningResetThreshold < warning.threshold) && 
+                        (memoryUsage <= (warning.threshold - userSettings.warningResetThreshold)))
                     {
                         warning.enabled = true;
                     }
@@ -398,9 +431,9 @@ namespace MemoryWarden
                 warnings[lastWarningIndexToActivate].enabled = false;
                 warnings[lastWarningIndexToActivate].warningWindow = new WarningWindow(
                     warnings[lastWarningIndexToActivate].threshold, 
-                    warnings[lastWarningIndexToActivate].type);
+                    warnings[lastWarningIndexToActivate].type,
+                    userSettings);
                 warnings[lastWarningIndexToActivate].warningWindow.Show();
-                Console.WriteLine("Window created.");
             }
         }
         
@@ -437,6 +470,7 @@ namespace MemoryWarden
         private void AddWarningClicked(object sender, RoutedEventArgs e)
         {
             warnings.Add(new WarningEvent(0, WarningType.passive));
+            Console.WriteLine("reset thresh = " + userSettings.warningResetThreshold);
         }
 
         private void RemoveWarningClicked(object sender, RoutedEventArgs e)

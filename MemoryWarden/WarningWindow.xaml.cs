@@ -1,16 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 using System.Diagnostics;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
@@ -32,6 +25,7 @@ namespace MemoryWarden
             set {
                 ramPercentHidden = value;
                 OnPropertyChanged("ramPercent");
+                OnPropertyChanged("ramPercentText");
             }
         }
         public int PID { get; }
@@ -66,29 +60,46 @@ namespace MemoryWarden
         private long totalProcessesMemory;
         private System.Windows.Forms.Timer refreshTimer;
         private double systemMemoryPercent;
+        private UserSettings userSettings;
 
-        public WarningWindow(uint memoryExceededThreshold, WarningType warningType)
+        public WarningWindow(uint memoryExceededThreshold, WarningType warningType, UserSettings userSettings)
         {
             InitializeComponent();
-            this.DataContext = this;//For binding
-
+            this.userSettings = userSettings;
+            Icon = SharedStatics.ToImageSource(Properties.Resources.prison);
+            //this.DataContext = this;//For binding
+            
             //Set the GUI labels
             memoryValue.Content = memoryExceededThreshold;
             SetSystemMemoryPercentAndLabel();
 
             //Build the table with data
-            RefreshProcessTable();
+            RefreshProcessTable(userSettings.warningWindowProcessMin, userSettings.warningWindowProcessMax, userSettings.warningWindowProcessPercentMin);
             memoryHogs.ItemsSource = processTable;
 
             //Enable live sorting in the window too, if data updates but I don't resort
             memoryHogs.Items.SortDescriptions.Add(new SortDescription("ramPercent", ListSortDirection.Descending));
             memoryHogs.Items.IsLiveSorting = true;
             
-            //Be aggressive
-            if (warningType == WarningType.aggressive)
+            //Be passive/aggressive/kill
+            if (warningType == WarningType.passive)
+            {
+                SharedStatics.FlashWindow(this, SharedStatics.FLASHW_ALL | SharedStatics.FLASHW_TIMERNOFG, 1, 1);
+                
+            }
+            else if (warningType == WarningType.aggressive)
             {
                 this.Show();
                 this.Activate();
+                this.Topmost = true;
+                SharedStatics.FlashWindow(this, SharedStatics.FLASHW_ALL, flashCount:3);
+            }
+            else if (warningType == WarningType.kill)
+            {
+                this.Show();
+                this.Activate();
+                this.Topmost = true;
+                SharedStatics.FlashWindow(this, SharedStatics.FLASHW_ALL, flashRate:200, flashCount: 6);
             }
 
             //Start the update timer
@@ -108,10 +119,7 @@ namespace MemoryWarden
         {
             //Updates the window once per second so it looks responsive.
 
-            RefreshProcessTable();
-            memoryHogs.Items.Refresh();
-            //Refresh seems the same as setting Items to null
-            // and resetting again. Look into this further. 
+            RefreshProcessTable(userSettings.warningWindowProcessMin, userSettings.warningWindowProcessMax, userSettings.warningWindowProcessPercentMin); ;
             SetSystemMemoryPercentAndLabel();
         }
 
@@ -139,7 +147,7 @@ namespace MemoryWarden
             }
         }
 
-        private void RefreshProcessTable(double memoryLimit = 20.0, int minimumProcessCount = 8)
+        private void RefreshProcessTable(uint minProcessCount, uint maxProcessCount, uint minMemoryPercent)
         {
             //Do all the work of rebuilding the processTable, attempting efficiency.
 
@@ -150,7 +158,8 @@ namespace MemoryWarden
             for (int n = 0; n < processes.Length; ++n)
             {
                 //Don't care after these limits are reached
-                if ((cumulativeMemorySum > memoryLimit) && (n > minimumProcessCount)) break;
+                if (((cumulativeMemorySum > minMemoryPercent) && (n >= minProcessCount)) || 
+                    (n >= maxProcessCount)) break;
                 
                 ProcessRow temp = new ProcessRow(processes[n], totalProcessesMemory);
                 cumulativeMemorySum += temp.ramPercent;
