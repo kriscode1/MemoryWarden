@@ -1,20 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Windows.Forms;
-using System.Drawing;
+//using System.Windows.Forms;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 
@@ -25,30 +17,35 @@ namespace MemoryWarden
     /// </summary>
     public partial class MainWindow : Window
     {
-        private NotifyIcon trayIcon;
+        private System.Windows.Forms.NotifyIcon trayIcon;
         private System.Windows.Forms.Timer checkMemoryTimer;
         private ObservableCollection<WarningEvent> warnings;
         private uint TEMPRESETTHRESHOLD = 5;
+
+        //Brushes
+        private Brush badCellBackground;
 
         public MainWindow()
         {
             InitializeComponent();
             this.DataContext = this;
+            badCellBackground = new SolidColorBrush(Color.FromArgb(128, 255, 0, 0));
 
             //Create tray icon
-            trayIcon = new NotifyIcon();
+            trayIcon = new System.Windows.Forms.NotifyIcon();
             trayIcon.Text = "Memory Warden";
             trayIcon.Icon = Properties.Resources.icontest;
             trayIcon.MouseClick += trayIconClicked;
             trayIcon.Visible = true;
-
+            trayIcon.BalloonTipClicked += TrayIcon_BalloonTipClicked;
+            
             //Programmatically build warnings table for user to modify
 
             //Column: warning type
             DataGridComboBoxColumn warningTypeColumn = new DataGridComboBoxColumn();
             warningTypeColumn.Header = "Warning Type";
             warningTypeColumn.ItemsSource = Enum.GetNames(typeof(WarningType));
-            System.Windows.Data.Binding warningTypeColumnBind = new System.Windows.Data.Binding("typeText");
+            Binding warningTypeColumnBind = new Binding("typeText");
             warningTypeColumnBind.Mode = BindingMode.TwoWay;
             warningTypeColumnBind.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
             warningTypeColumn.SelectedItemBinding = warningTypeColumnBind;
@@ -57,7 +54,7 @@ namespace MemoryWarden
             DataGridTextColumn thresholdValueColumn = new DataGridTextColumn();
             thresholdValueColumn.Header = "Warning triggers at this memory %";
             thresholdValueColumn.SortDirection = ListSortDirection.Ascending;//Won't actually sort by this column, just here for looks
-            System.Windows.Data.Binding thresholdValueColumnBind = new System.Windows.Data.Binding("threshold");
+            Binding thresholdValueColumnBind = new Binding("threshold");
             thresholdValueColumnBind.Mode = BindingMode.TwoWay;
             thresholdValueColumnBind.UpdateSourceTrigger = UpdateSourceTrigger.LostFocus;
             thresholdValueColumnBind.ValidationRules.Add(new PercentsValidator());
@@ -78,6 +75,14 @@ namespace MemoryWarden
             //Enable sorting on the numeric value of threshold
             warningsDataGrid.Items.SortDescriptions.Add(new SortDescription("threshold", ListSortDirection.Ascending));
             warningsDataGrid.Items.IsLiveSorting = true;
+            
+        }
+
+        private void TrayIcon_BalloonTipClicked(object sender, EventArgs e)
+        {
+            //Bring up settings window.
+            //Same as clicking on the tray icon.
+            trayIconClicked(sender, null);//I don't use the args anyways.
         }
 
         private void TypeDigitsOnly(object sender, TextCompositionEventArgs e)
@@ -137,6 +142,57 @@ namespace MemoryWarden
             }
         }
 
+        private DataGridCell GetCellFromCellInfo(DataGridCellInfo cellInfo)
+        {
+            //Helper function to convert a DataGridCellInfo object into a more useful DataGridCell.
+            
+            FrameworkElement cellContent = cellInfo.Column.GetCellContent(cellInfo.Item);
+            //Because cellInfo doesn't have a Content property.
+            if (cellContent != null) return (DataGridCell)cellContent.Parent;
+            //Because cellInfo doesn't have a Parent property.
+            return null;
+        }
+
+        private List<DataGridCell> GetCellsInColumn(DataGrid dataGrid, int columnIndex)
+        {
+            List<DataGridCell> ret = new List<DataGridCell>();
+            dataGrid.SelectAllCells();
+            foreach (DataGridCellInfo cellInfo in dataGrid.SelectedCells)
+            {
+                if (cellInfo.Column.DisplayIndex == columnIndex)
+                {
+                    DataGridCell cell = GetCellFromCellInfo(cellInfo);
+                    ret.Add(cell);
+                }
+            }
+            dataGrid.UnselectAllCells();
+            return ret;
+        }
+
+        private List<DataGridCell> GetCellsInGrid(DataGrid dataGrid)
+        {
+            List<DataGridCell> ret = new List<DataGridCell>();
+            dataGrid.SelectAllCells();
+            foreach (DataGridCellInfo cellInfo in dataGrid.SelectedCells)
+            {
+                DataGridCell cell = GetCellFromCellInfo(cellInfo);
+                ret.Add(cell);
+            }
+            dataGrid.UnselectAllCells();
+            return ret;
+        }
+
+        private void CreateErrorTooltip(object content, UIElement placementTarget)
+        {
+            ToolTip errorForUser = new ToolTip();
+            errorForUser.Content = content;
+            errorForUser.IsOpen = true;
+            errorForUser.StaysOpen = false;
+            errorForUser.PlacementTarget = placementTarget;
+            errorForUser.Placement = PlacementMode.Relative;
+            errorForUser.PlacementRectangle = new Rect(40, 10, errorForUser.ActualWidth, errorForUser.ActualHeight);
+        }
+
         private void okButtonClicked(object sender, EventArgs e)
         {
             //Perform validation checks, then start timer to monitor RAM if everything looks good.
@@ -159,7 +215,18 @@ namespace MemoryWarden
                 return;
             }
 
+            //Reset any previously set error coloring
+            List<DataGridCell> allCells = GetCellsInGrid(warningsDataGrid);
+            foreach (DataGridCell cell in allCells)
+            {
+                cell.ClearValue(DataGridCell.BackgroundProperty);
+            }
+
             //Check that there is at most one kill warning
+            string sharedKillWarningTooltipText = 
+                "Kill warning windows will automatically kill the top memory hogging\n" +
+                "processes, without your input. Use this to prevent system lockup\n" +
+                "for very high memory usage. Example: 95% or higher.";
             int killWarningCount = 0;
             foreach (WarningEvent warning in warnings)
             {
@@ -167,8 +234,61 @@ namespace MemoryWarden
                 {
                     if (++killWarningCount > 1)
                     {
-                        Console.WriteLine("More than one kill warning specified.");
+                        //Tell user: more than one kill warning specified
+                        List<DataGridCell> cells = GetCellsInColumn(warningsDataGrid, 0);
+                        bool tooltipShownOnce = false;
+                        foreach (DataGridCell cell in cells)
+                        {
+                            WarningEvent cellWarning = cell.DataContext as WarningEvent;
+                            if (cellWarning.type == WarningType.kill)
+                            {
+                                cell.Background = badCellBackground;
+                                if (!tooltipShownOnce)
+                                {
+                                    string errorText =
+                                        "Cannot have more than one kill warning type.\n\n" +
+                                        sharedKillWarningTooltipText;
+                                    CreateErrorTooltip(errorText, cell);
+                                    tooltipShownOnce = true;
+                                }
+                            }
+                        }
                         return;
+                    }
+                }
+            }
+
+            //If there is a kill warning, check if it is the last warning
+            // The warnings are not yet sorted, so cannot check using indices.
+            // Finding the largest threshold instead.
+            if (killWarningCount == 1)
+            {
+                //First get index of the last warning (largest threshold)
+                int largestThresholdIndex = 0;
+                uint largestThreshold = warnings[0].threshold;
+                for (int n = 1; n < warnings.Count; ++n)
+                {
+                    if (warnings[n].threshold > largestThreshold) largestThresholdIndex = n;
+                }
+
+                //Then, check if that warning is the kill warning
+                if (warnings[largestThresholdIndex].type != WarningType.kill)
+                {
+                    //Loop through each cell until the kill cell is found
+                    List<DataGridCell> cells = GetCellsInColumn(warningsDataGrid, 0);
+                    foreach (DataGridCell cell in cells)
+                    {
+                        WarningEvent cellWarning = cell.DataContext as WarningEvent;
+                        if (cellWarning.type == WarningType.kill)
+                        {
+                            //Found the bad kill warning. Tell user and stop the search.
+                            cell.Background = badCellBackground;
+                            string errorText =
+                                "Kill warning must be last.\n\n" +
+                                sharedKillWarningTooltipText;
+                            CreateErrorTooltip(errorText, cell);
+                            return;
+                        }
                     }
                 }
             }
@@ -179,14 +299,36 @@ namespace MemoryWarden
             {
                 if (duplicatesChecker.Add(warning.threshold) == false)
                 {
-                    Console.WriteLine("Duplicate warning entered for threshold=" + warning.threshold);
+                    //Loop through the cells to highlight duplicates
+                    bool tooltipShownOnce = false;
+                    List<DataGridCell> cells = GetCellsInColumn(warningsDataGrid, 1);
+                    foreach (DataGridCell cell in cells)
+                    {
+                        WarningEvent cellWarning = cell.DataContext as WarningEvent;
+                        if (cellWarning.threshold == warning.threshold)
+                        {
+                            cell.Background = badCellBackground;
+                            if (!tooltipShownOnce)
+                            {
+                                CreateErrorTooltip("Cannot have duplicate warnings for the same memory threshold.", cell);
+                                tooltipShownOnce = true;
+                            }
+                        }
+                    }
                     return;
                 }
             }
 
             //Hide the main window
-            this.WindowState = System.Windows.WindowState.Minimized;
+            this.WindowState = WindowState.Minimized;
             this.ShowInTaskbar = false;
+
+            //Show the tray icon balloon tip
+            trayIcon.ShowBalloonTip(
+                3000,
+                "Memory Warden Running",
+                "Settings saved. Ready to give warnings.\nClick this icon to stop and open settings again.",
+                System.Windows.Forms.ToolTipIcon.None);
 
             //Close an open window if any, and re-enable old warnings
             CloseAnOpenWarningWindow();
@@ -264,7 +406,7 @@ namespace MemoryWarden
         
         private void trayIconClicked(object sender, System.Windows.Forms.MouseEventArgs e)
         {
-            this.WindowState = System.Windows.WindowState.Normal;
+            this.WindowState = WindowState.Normal;
             this.ShowInTaskbar = true;
             this.Activate();
             if (checkMemoryTimer != null)
@@ -273,15 +415,22 @@ namespace MemoryWarden
                 checkMemoryTimer.Stop();
                 checkMemoryTimer.Dispose();
             }
-
+            
             //Check existing warnings for any open windows before the user changes something
             CloseAnOpenWarningWindow();
+
+            //Notify the user that monitoring is paused
+            trayIcon.ShowBalloonTip(
+                3000,
+                "Memory Warden Paused",
+                "Memory warnings are paused.",
+                System.Windows.Forms.ToolTipIcon.None);
         }
 
         private void exitButtonClicked(object sender, RoutedEventArgs e)
         {
             CloseAnOpenWarningWindow();
-            System.Windows.Application.Current.Shutdown();
+            Application.Current.Shutdown();
             this.Close();//Yes, the application is probably still running here
         }
 

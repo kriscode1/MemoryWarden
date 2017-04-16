@@ -15,8 +15,8 @@
         </StackPanel.Background>
         <StackPanel x:Name="checkFrequency" HorizontalAlignment="Left" VerticalAlignment="Top" Orientation="Horizontal" Margin="10">
             <Label x:Name="label2" Content="Check memory (RAM%) every"/>
-            <TextBox x:Name="frequencyTextBox" Text="2" HorizontalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Center" VerticalContentAlignment="Center" Padding="0" Margin="0,0,10,0" UndoLimit="5" MaxLines="1" MaxLength="8" MinWidth="45" PreviewTextInput="TypeDigitsOnly" LostKeyboardFocus="EnsureFrequencyMakesSense"/>
-            <ComboBox x:Name="timeFrame" SelectedIndex="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Width="80" Cursor="No">
+            <TextBox x:Name="frequencyTextBox" Text="2" HorizontalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Center" VerticalContentAlignment="Center" Padding="0" Margin="0,0,10,0" UndoLimit="5" MaxLines="1" MaxLength="8" MinWidth="45" PreviewTextInput="TypeDigitsOnly" LostKeyboardFocus="EnsureFrequencyMakesSense" AllowDrop="False"/>
+            <ComboBox x:Name="timeFrame" SelectedIndex="0" VerticalContentAlignment="Center" HorizontalContentAlignment="Center" Width="80">
                 <ComboBoxItem x:Name="option_seconds" Content="seconds" VerticalContentAlignment="Center" VerticalAlignment="Top" HorizontalContentAlignment="Left"/>
                 <ComboBoxItem x:Name="option_minutes" Content="minutes" VerticalContentAlignment="Center" VerticalAlignment="Top" HorizontalContentAlignment="Left"/>
             </ComboBox>
@@ -41,7 +41,7 @@
         </GroupBox>
         <StackPanel x:Name="Buttons" Orientation="Horizontal" Margin="10" FlowDirection="RightToLeft">
             <Button x:Name="exitButton" Content="Exit" Margin="0,0,10,0" Width="80" Click="exitButtonClicked" ToolTip="Quit Memory Warden"/>
-            <Button x:Name="okButton" Content="OK" Width="80" Margin="0,0,10,0" Click="okButtonClicked" ToolTip="Save settings and start monitoring for warnings."/>
+            <Button x:Name="okButton" Content="OK" Width="80" Margin="0,0,10,0" Click="okButtonClicked" ToolTip="Save settings and start guarding for warnings."/>
         </StackPanel>
     </StackPanel>
 </Window>
