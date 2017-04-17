@@ -150,7 +150,7 @@ namespace MemoryWarden
         private void RefreshProcessTable(uint minProcessCount, uint maxProcessCount, uint minMemoryPercent)
         {
             //Do all the work of rebuilding the processTable, attempting efficiency.
-
+            
             RefreshProcessLists();
             CalculateTotalProcessMemory();
             ObservableCollection<ProcessRow> processTableTemp = new ObservableCollection<ProcessRow>();

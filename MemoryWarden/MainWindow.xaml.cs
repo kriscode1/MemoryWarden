@@ -9,6 +9,7 @@ using System.Windows.Media;
 //using System.Windows.Forms;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Collections;
 
 namespace MemoryWarden
 {
@@ -82,6 +83,7 @@ namespace MemoryWarden
             warningWindowProcessMinTextBox.Text = userSettings.warningWindowProcessMin.ToString();
             warningWindowProcessMaxTextBox.Text = userSettings.warningWindowProcessMax.ToString();
             warningWindowProcessPercentMinTextBox.Text = userSettings.warningWindowProcessPercentMin.ToString();
+            
         }
 
         private void TrayIcon_BalloonTipClicked(object sender, EventArgs e)
@@ -330,25 +332,39 @@ namespace MemoryWarden
             pendingSettings.warningResetThreshold = (uint)Convert.ToInt32(warningResetThresholdTextBox.Text);
             if (pendingSettings.warningResetThreshold > 100)
             {
-                Console.WriteLine("warningResetThreshold");
-                //TODO ERROR
+                expander.IsExpanded = true;
+                warningResetThresholdTextBox.Background = badCellBackground;
+                CreateErrorTooltip("Warning reset threshold cannot be over 100%.", warningResetThresholdTextBox);
                 return;
             }
+            else warningResetThresholdTextBox.ClearValue(TextBox.BackgroundProperty);
             pendingSettings.warningWindowProcessMin = (uint)Convert.ToInt32(warningWindowProcessMinTextBox.Text);
             pendingSettings.warningWindowProcessMax = (uint)Convert.ToInt32(warningWindowProcessMaxTextBox.Text);
-            if (pendingSettings.warningWindowProcessMax <= pendingSettings.warningWindowProcessMin)
+            if (pendingSettings.warningWindowProcessMax < pendingSettings.warningWindowProcessMin)
             {
-                Console.WriteLine("warningWindowProcessMax");
-                //TODO ERROR
+                expander.IsExpanded = true;
+                warningWindowProcessMinTextBox.Background = badCellBackground;
+                warningWindowProcessMaxTextBox.Background = badCellBackground;
+                CreateErrorTooltip(
+                    "Minimum number of processes to show must be less than\n" +
+                    "or equal to the maximum number of processes to show.", 
+                    warningWindowProcessMaxTextBox);
                 return;
+            }
+            else
+            {
+                warningWindowProcessMinTextBox.ClearValue(TextBox.BackgroundProperty);
+                warningWindowProcessMaxTextBox.ClearValue(TextBox.BackgroundProperty);
             }
             pendingSettings.warningWindowProcessPercentMin = (uint)Convert.ToInt32(warningWindowProcessPercentMinTextBox.Text);
             if (pendingSettings.warningWindowProcessPercentMin > 100)
             {
-                Console.WriteLine("warningWindowProcessPercentMin");
-                //TODO ERROR
+                expander.IsExpanded = true;
+                warningWindowProcessPercentMinTextBox.Background = badCellBackground;
+                CreateErrorTooltip("Minimum cumulative process responsibility cannot be over 100%.", warningWindowProcessPercentMinTextBox);
                 return;
             }
+            else warningWindowProcessPercentMinTextBox.ClearValue(TextBox.BackgroundProperty);
             userSettings = pendingSettings;
 
             //Hide the main window
@@ -470,19 +486,31 @@ namespace MemoryWarden
         private void AddWarningClicked(object sender, RoutedEventArgs e)
         {
             warnings.Add(new WarningEvent(0, WarningType.passive));
-            Console.WriteLine("reset thresh = " + userSettings.warningResetThreshold);
         }
 
         private void RemoveWarningClicked(object sender, RoutedEventArgs e)
         {
-            WarningEvent selectedWarning = (WarningEvent)warningsDataGrid.SelectedItem;
-            if (selectedWarning != null) warnings.Remove(selectedWarning);
+            List<WarningEvent> selectedWarningsCopy = new List<WarningEvent>();
+            foreach (WarningEvent warning in warningsDataGrid.SelectedItems)
+            {
+                selectedWarningsCopy.Add(warning);
+            }
+            foreach (WarningEvent warning in selectedWarningsCopy)
+            {
+                warnings.Remove(warning);
+            }
         }
 
         private void SelectedWarningsChanged(object sender, SelectionChangedEventArgs e)
         {
             if (warningsDataGrid.SelectedItems.Count == 0) removeWarningButton.IsEnabled = false;
             else removeWarningButton.IsEnabled = true;
+        }
+
+        private void HighlightTextboxContentsOnFocus(object sender, KeyboardFocusChangedEventArgs e)
+        {
+            TextBox textBox = sender as TextBox;
+            textBox.SelectAll();
         }
     }
 }

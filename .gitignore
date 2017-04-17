@@ -1,6 +1,5 @@
 .vs
-MemoryWarden/obj/Debug
-Settings.settings
 bin
-WorkerThread.cs
+obj
+Settings.settings
 Resources

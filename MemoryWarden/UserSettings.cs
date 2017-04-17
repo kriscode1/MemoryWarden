@@ -7,16 +7,10 @@ using System.Threading.Tasks;
 
 namespace MemoryWarden
 {
-    public class UserSettings// : INotifyPropertyChanged
+    public class UserSettings
     {
-        /*private uint warningResetThresholdHidden;
-        public uint warningResetThreshold {
-            get { return warningResetThresholdHidden; }
-            set {
-                warningResetThresholdHidden = value;
-                OnPropertyChanged("warningResetThreshold");
-            }
-        }*/
+        //Class to manage user settings and transfer between windows.
+
         public uint warningResetThreshold { get; set; }
         public uint warningWindowProcessMin { get; set; }
         public uint warningWindowProcessMax { get; set; }
@@ -24,19 +18,11 @@ namespace MemoryWarden
 
         public UserSettings()
         {
+            //Default user settings
             warningResetThreshold = 5;
             warningWindowProcessMin = 8;
             warningWindowProcessMax = 50;
             warningWindowProcessPercentMin = 20;
         }
-
-        /*public event PropertyChangedEventHandler PropertyChanged;
-        private void OnPropertyChanged(string propertyName)
-        {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-            }
-        }*/
     }
 }
