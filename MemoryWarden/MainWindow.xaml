@@ -8,6 +8,9 @@
         mc:Ignorable="d"
         Title="Memory Warden" SizeToContent="WidthAndHeight" ResizeMode="NoResize" HorizontalAlignment="Left" VerticalAlignment="Top" ScrollViewer.VerticalScrollBarVisibility="Disabled" Cursor="" Closed="WindowClosed" Background="White">
     <Window.Resources>
+        <Style TargetType="{x:Type DataGridCell}" x:Key="warningsThresholdCell">
+            <EventSetter Event="PreviewTextInput" Handler="TypeDigitsOnly"/>
+        </Style>
     </Window.Resources>
     <StackPanel x:Name="Vertical_Stack_Panel" HorizontalAlignment="Left" VerticalAlignment="Top" ScrollViewer.VerticalScrollBarVisibility="Disabled">
         <StackPanel.Background>
@@ -36,7 +39,8 @@
                 </Grid.RowDefinitions>
                 <Button x:Name="addWarningButton" Content="Add" VerticalAlignment="Center" Width="130" Height="23" Click="AddWarningClicked" Grid.Column="1" ToolTip="Add a new warning."/>
                 <Button x:Name="removeWarningButton" Content="Remove" Grid.Column="3" VerticalAlignment="Center" Width="130" Height="23" Click="RemoveWarningClicked" ToolTip="Remove the selected warning." IsEnabled="False"/>
-                <DataGrid x:Name="warningsDataGrid" Margin="0,10,0,0" Grid.Row="1" Grid.ColumnSpan="5" HorizontalScrollBarVisibility="Disabled" CanUserReorderColumns="False" CanUserResizeRows="False" AutoGenerateColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" SelectionChanged="SelectedWarningsChanged"/>
+                <DataGrid x:Name="warningsDataGrid" Style="{StaticResource customDataGridStyle}" Margin="0,10,0,0" Grid.Row="1" Grid.ColumnSpan="5" HorizontalScrollBarVisibility="Disabled" CanUserReorderColumns="False" CanUserResizeRows="False" AutoGenerateColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" SelectionChanged="SelectedWarningsChanged">
+                </DataGrid>
             </Grid>
         </GroupBox>
         <StackPanel x:Name="Buttons" Orientation="Horizontal" Margin="10" FlowDirection="RightToLeft">

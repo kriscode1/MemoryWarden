@@ -88,7 +88,6 @@
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
     <Compile Include="UserSettings.cs" />
-    <Compile Include="PercentsValidator.cs" />
     <Compile Include="SharedStatics.cs" />
     <Compile Include="SystemMemory.cs" />
     <Compile Include="WarningEvent.cs" />

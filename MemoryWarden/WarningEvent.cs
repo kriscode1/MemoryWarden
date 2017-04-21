@@ -11,14 +11,30 @@ namespace MemoryWarden
 
         private WarningType typeHidden;
         private uint thresholdHidden;
+        private string thresholdTextHidden;
 
         //Versions of the above for the user to get/modify
         public WarningType type { get { return typeHidden; } }
         public uint threshold {
             get { return thresholdHidden; }
-            set {
+            /*set {
                 thresholdHidden = value;
                 OnPropertyChanged("threshold");
+            }*/
+        }
+        public string thresholdText
+        {
+            get { return thresholdTextHidden; }
+            set
+            {
+                int result;
+                if (Int32.TryParse(value, out result))
+                {
+                    if (result >= 0) thresholdHidden = (uint)result;
+                    OnPropertyChanged("threshold");
+                }
+                thresholdTextHidden = value;
+                OnPropertyChanged("thresholdText");
             }
         }
         public string typeText {
@@ -46,9 +62,9 @@ namespace MemoryWarden
             }
         }
 
-        public WarningEvent(uint threshold, WarningType type)
+        public WarningEvent(string threshold, WarningType type)
         {
-            thresholdHidden = threshold;
+            this.thresholdText = threshold;
             typeHidden = type;
             this.enabled = true;
         }

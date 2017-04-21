@@ -55,11 +55,12 @@ namespace MemoryWarden
             DataGridTextColumn thresholdValueColumn = new DataGridTextColumn();
             thresholdValueColumn.Header = "Warning triggers at this memory %";
             thresholdValueColumn.SortDirection = ListSortDirection.Ascending;//Won't actually sort by this column, just here for looks
-            Binding thresholdValueColumnBind = new Binding("threshold");
+            Binding thresholdValueColumnBind = new Binding("thresholdText");
             thresholdValueColumnBind.Mode = BindingMode.TwoWay;
             thresholdValueColumnBind.UpdateSourceTrigger = UpdateSourceTrigger.LostFocus;
-            thresholdValueColumnBind.ValidationRules.Add(new PercentsValidator());
+            //thresholdValueColumnBind.ValidationRules.Add(new PercentsValidator());
             thresholdValueColumn.Binding = thresholdValueColumnBind;
+            thresholdValueColumn.CellStyle = (Style) Resources["warningsThresholdCell"];
             
             //Add columns in desired order
             warningsDataGrid.Columns.Clear();
@@ -68,9 +69,11 @@ namespace MemoryWarden
 
             //Add initial rows
             warnings = new ObservableCollection<WarningEvent>();
-            warnings.Add(new WarningEvent(35, WarningType.passive));
-            warnings.Add(new WarningEvent(75, WarningType.aggressive));
-            warnings.Add(new WarningEvent(98, WarningType.kill));
+            warnings.Add(new WarningEvent("35", WarningType.aggressive));
+            warnings.Add(new WarningEvent("75", WarningType.passive));
+            warnings.Add(new WarningEvent("85", WarningType.aggressive));
+            warnings.Add(new WarningEvent("92", WarningType.aggressive));
+            warnings.Add(new WarningEvent("98", WarningType.kill));
             warningsDataGrid.ItemsSource = warnings;
 
             //Enable sorting on the numeric value of threshold
@@ -98,6 +101,7 @@ namespace MemoryWarden
             //Called when the user types into the a text box, to block non-digits
             //Used with PreviewTextInput event
             char c = Convert.ToChar(e.Text);
+            Console.WriteLine("char:" + c + "|" + (int)c);
             if ((c < '0') || (c > '9'))
             {
                 //Non-digit was typed
@@ -203,10 +207,22 @@ namespace MemoryWarden
         private void okButtonClicked(object sender, EventArgs e)
         {
             //Perform validation checks, then start timer to monitor RAM if everything looks good.
-            
+
             //Get the time frequency number for the timer
-            //Number in box should already look good
-            int frequency = Convert.ToInt32(frequencyTextBox.Text);
+            int frequency;
+            if (!Int32.TryParse(frequencyTextBox.Text, out frequency))
+            {
+                frequencyTextBox.Background = badCellBackground;
+                CreateErrorTooltip("Should be a whole number unit of time.", frequencyTextBox);
+                return;
+            }
+            if (frequency <= 0)
+            {
+                frequencyTextBox.Background = badCellBackground;
+                CreateErrorTooltip("Time needs to be positive.", frequencyTextBox);
+                return;
+            }
+            frequencyTextBox.ClearValue(TextBox.BackgroundProperty);//Reset previous error coloring
             if (timeFrame.SelectedIndex == 1) frequency *= 60;//Minutes to seconds
             frequency *= 1000;//Seconds to MS
 
@@ -214,11 +230,12 @@ namespace MemoryWarden
             if (warnings == null)
             {
                 Console.WriteLine("Error: Warnings list is empty. Must have been set null somewhere.");
+                CreateErrorTooltip("Unknown error. Please restart Memory Warden.", warningsDataGrid);
                 return;
             }
             if (warnings.Count == 0)
             {
-                Console.WriteLine("No warnings made.");
+                CreateErrorTooltip("Add warnings when memory reaches high levels.", addWarningButton);
                 return;
             }
 
@@ -229,6 +246,54 @@ namespace MemoryWarden
                 cell.ClearValue(DataGridCell.BackgroundProperty);
             }
 
+            //Check each threshold column for a valid value
+            List<DataGridCell> thresholdColumnCells = GetCellsInColumn(warningsDataGrid, 1);
+            bool wasBadContent = false;
+            foreach (DataGridCell cell in thresholdColumnCells)
+            {
+                //First get cell contents
+                string text;
+                if (cell.Content is TextBlock) text = (cell.Content as TextBlock).Text;
+                else if (cell.Content is TextBox) text = (cell.Content as TextBox).Text;
+                else text = "";
+
+                //Convert number and validate
+                bool badContent = false;
+                int convertedNumber;
+                if (text == null)
+                {
+                    badContent = true;
+                    if (!wasBadContent) CreateErrorTooltip("Must enter a value.", cell);
+                }
+                else if (text.Length == 0)
+                {
+                    badContent = true;
+                    if (!wasBadContent) CreateErrorTooltip("Must enter a value.", cell);
+                }
+                else if (!Int32.TryParse(text, out convertedNumber))
+                {
+                    badContent = true;
+                    if (!wasBadContent) CreateErrorTooltip("Must enter a whole number.", cell);
+                }
+                else if ((convertedNumber < 0) || (convertedNumber > 100))
+                {
+                    badContent = true;
+                    if (!wasBadContent) CreateErrorTooltip("RAM% should be between 0 to 100.", cell);
+                }
+
+                //Update UI
+                if (badContent)
+                {
+                    cell.Background = badCellBackground;
+                    wasBadContent = true;
+                }
+                else
+                {
+                    cell.ClearValue(DataGridCell.BackgroundProperty);
+                }
+            }
+            if (wasBadContent) return;
+            
             //Check that there is at most one kill warning
             string sharedKillWarningTooltipText = 
                 "Kill warning windows will automatically kill the top memory hogging\n" +
@@ -485,7 +550,7 @@ namespace MemoryWarden
 
         private void AddWarningClicked(object sender, RoutedEventArgs e)
         {
-            warnings.Add(new WarningEvent(0, WarningType.passive));
+            warnings.Add(new WarningEvent("0", WarningType.passive));
         }
 
         private void RemoveWarningClicked(object sender, RoutedEventArgs e)

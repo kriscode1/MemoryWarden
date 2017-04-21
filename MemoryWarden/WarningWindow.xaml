@@ -30,10 +30,12 @@
             <Label x:Name="systemMemoryLabel" Content="100"/>
             <Label x:Name="label2_Copy" Content="%" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0.5"/>
         </StackPanel>
-        <DataGrid x:Name="memoryHogs" FontSize="14" IsReadOnly="True" AutoGenerateColumns="False" CanUserSortColumns="False" CanUserResizeRows="False" HorizontalScrollBarVisibility="Disabled" CanUserReorderColumns="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Grid.Row="3">
+        <DataGrid x:Name="memoryHogs" Style="{StaticResource customDataGridStyle}" IsReadOnly="True" AutoGenerateColumns="False" CanUserSortColumns="False" CanUserResizeRows="False" HorizontalScrollBarVisibility="Disabled" CanUserReorderColumns="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Grid.Row="3" SelectionMode="Single">
             <DataGrid.Resources>
                 <Style TargetType="DataGridRow">
                     <EventSetter Event="MouseDoubleClick" Handler="Row_DoubleClick"/>
+                    <!--<EventSetter Event="MouseEnter" Handler="Row_MouseEnter"/>
+                    <EventSetter Event="MouseLeave" Handler="Row_MouseLeave"/>-->
                 </Style>
             </DataGrid.Resources>
             <DataGrid.Columns>

@@ -287,6 +287,36 @@ namespace MemoryWarden
             refreshTimer.Start();
         }
 
+        /*private void Row_MouseEnter(object sender, MouseEventArgs e)
+        {
+            DataGridRow row = sender as DataGridRow;
+            //row.Background = new SolidColorBrush(Colors.LightCyan);
+            //row.BorderBrush = new SolidColorBrush(Colors.Violet);//.LightBlue);
+            //row.BorderThickness = new Thickness(0, 1, 0, 1);
+            Console.WriteLine("Mouse enter this row");
+        }
+        private void Row_MouseLeave(object sender, MouseEventArgs e)
+        {
+            DataGridRow row = sender as DataGridRow;
+            //row.Background = new SolidColorBrush(Colors.White);
+            //row.BorderBrush = new SolidColorBrush(Colors.Transparent);
+            //row.BorderThickness = new Thickness(0, 1, 0, 1);
+            Console.WriteLine("Mouse leave this row");
+        }
+
+        private void Cell_MouseEnter(object sender, MouseEventArgs e)
+        {
+            DataGridCell cell = sender as DataGridCell;
+            
+            //<DataGridCell> allCells = GetCellsInGrid(memoryHogs);
+            Console.WriteLine("Mouse enter this cell, parent: " + cell.Parent.GetType().ToString());
+        }
+        private void Cell_MouseLeave(object sender, MouseEventArgs e)
+        {
+            Console.WriteLine("Mouse leave this cell");
+        }*/
+
+
         private void DisplayErrorMessage(string message, string title)
         {
             MessageBox.Show(this, message, title, MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
