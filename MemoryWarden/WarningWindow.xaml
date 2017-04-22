@@ -32,10 +32,16 @@
         </StackPanel>
         <DataGrid x:Name="memoryHogs" Style="{StaticResource customDataGridStyle}" IsReadOnly="True" AutoGenerateColumns="False" CanUserSortColumns="False" CanUserResizeRows="False" HorizontalScrollBarVisibility="Disabled" CanUserReorderColumns="False" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Grid.Row="3" SelectionMode="Single">
             <DataGrid.Resources>
-                <Style TargetType="DataGridRow">
+                <Style TargetType="DataGridRow" BasedOn="{StaticResource customDataGridRowStyle}">
                     <EventSetter Event="MouseDoubleClick" Handler="Row_DoubleClick"/>
-                    <!--<EventSetter Event="MouseEnter" Handler="Row_MouseEnter"/>
-                    <EventSetter Event="MouseLeave" Handler="Row_MouseLeave"/>-->
+                    <EventSetter Event="MouseEnter" Handler="Row_MouseEnter"/>
+                    <EventSetter Event="MouseLeave" Handler="Row_MouseLeave"/>
+                    <EventSetter Event="Selected" Handler="Row_Selected" />
+                    <EventSetter Event="Unselected" Handler="Row_Unselected" />
+                </Style>
+                <Style TargetType="DataGridCell" BasedOn="{StaticResource customDataGridCellStyle}">
+                    <EventSetter Event="Selected" Handler="Cell_Selected" />
+                    <EventSetter Event="Unselected" Handler="Cell_Unselected" />
                 </Style>
             </DataGrid.Resources>
             <DataGrid.Columns>

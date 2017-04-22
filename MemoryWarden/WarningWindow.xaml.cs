@@ -61,14 +61,17 @@ namespace MemoryWarden
         private System.Windows.Forms.Timer refreshTimer;
         private double systemMemoryPercent;
         private UserSettings userSettings;
+        private TableFormatter memoryHogsFormatter;
 
         public WarningWindow(uint memoryExceededThreshold, WarningType warningType, UserSettings userSettings)
         {
             InitializeComponent();
             this.userSettings = userSettings;
             Icon = SharedStatics.ToImageSource(Properties.Resources.prison);
-            //this.DataContext = this;//For binding
             
+            //Formatter helper for the table settings, will likely expand in the future.
+            memoryHogsFormatter = new TableFormatter(memoryHogs);
+
             //Set the GUI labels
             memoryValue.Content = memoryExceededThreshold;
             SetSystemMemoryPercentAndLabel();
@@ -287,39 +290,40 @@ namespace MemoryWarden
             refreshTimer.Start();
         }
 
-        /*private void Row_MouseEnter(object sender, MouseEventArgs e)
+        private void DisplayErrorMessage(string message, string title)
+        {
+            MessageBox.Show(this, message, title, MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
+        }
+
+        private void Row_MouseEnter(object sender, MouseEventArgs e)
         {
             DataGridRow row = sender as DataGridRow;
-            //row.Background = new SolidColorBrush(Colors.LightCyan);
-            //row.BorderBrush = new SolidColorBrush(Colors.Violet);//.LightBlue);
-            //row.BorderThickness = new Thickness(0, 1, 0, 1);
-            Console.WriteLine("Mouse enter this row");
+            if (row != null) memoryHogsFormatter.MouseEnterRow(row);
         }
         private void Row_MouseLeave(object sender, MouseEventArgs e)
         {
             DataGridRow row = sender as DataGridRow;
-            //row.Background = new SolidColorBrush(Colors.White);
-            //row.BorderBrush = new SolidColorBrush(Colors.Transparent);
-            //row.BorderThickness = new Thickness(0, 1, 0, 1);
-            Console.WriteLine("Mouse leave this row");
+            if (row != null) memoryHogsFormatter.MouseLeaveRow(row);
         }
-
-        private void Cell_MouseEnter(object sender, MouseEventArgs e)
+        private void Row_Selected(object sender, RoutedEventArgs e)
+        {
+            DataGridRow row = sender as DataGridRow;
+            if (row != null) memoryHogsFormatter.RowSelected(row);
+        }
+        private void Row_Unselected(object sender, RoutedEventArgs e)
+        {
+            DataGridRow row = sender as DataGridRow;
+            if (row != null) memoryHogsFormatter.RowUnselected(row);
+        }
+        private void Cell_Selected(object sender, RoutedEventArgs e)
         {
             DataGridCell cell = sender as DataGridCell;
-            
-            //<DataGridCell> allCells = GetCellsInGrid(memoryHogs);
-            Console.WriteLine("Mouse enter this cell, parent: " + cell.Parent.GetType().ToString());
+            if (cell != null) memoryHogsFormatter.CellSelected(cell);
         }
-        private void Cell_MouseLeave(object sender, MouseEventArgs e)
+        private void Cell_Unselected(object sender, RoutedEventArgs e)
         {
-            Console.WriteLine("Mouse leave this cell");
-        }*/
-
-
-        private void DisplayErrorMessage(string message, string title)
-        {
-            MessageBox.Show(this, message, title, MessageBoxButton.OK, MessageBoxImage.Error, MessageBoxResult.OK);
+            DataGridCell cell = sender as DataGridCell;
+            if (cell != null) memoryHogsFormatter.CellUnselected(cell);
         }
     }
 }

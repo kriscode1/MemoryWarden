@@ -31,35 +31,27 @@
             <Setter Property="GridLinesVisibility" Value="Vertical"/>
             <Setter Property="VerticalGridLinesBrush" Value="LightGray"/>
             <Setter Property="FontSize" Value="14"/>
-            <Style.Resources>
-                <Style TargetType="DataGridCell">
-                    <Setter Property="Padding" Value="5 0 5 0"/>
-                    <!--Left, top, right, bottom-->
-                    <!--Convoluted but necessary way to set the padding.-->
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="{x:Type DataGridCell}">
-                                <Border Padding="{TemplateBinding Padding}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
-                                    <ContentPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
-                                </Border>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                    <Setter Property="Foreground" Value="Black"/>
-                    <Setter Property="BorderBrush" Value="Transparent"/>
-                    <Setter Property="BorderThickness" Value="0 1 0 1"/>
-                    <Style.Triggers>
-                        <!--<Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="LightCyan"/>
-                            <Setter Property="BorderBrush" Value="LightBlue"/>
-                        </Trigger>-->
-                        <Trigger Property="IsSelected" Value="True">
-                            <Setter Property="Background" Value="LightBlue"/>
-                            <Setter Property="BorderBrush" Value="SteelBlue"/>
-                        </Trigger>
-                    </Style.Triggers>
-                </Style>
-            </Style.Resources>
+            <Setter Property="Background" Value="White"/>
+        </Style>
+        <Style TargetType="DataGridRow" x:Key="customDataGridRowStyle">
+            <Setter Property="BorderThickness" Value="0 1 0 1"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+        </Style>
+        <Style TargetType="DataGridCell" x:Key="customDataGridCellStyle">
+            <Setter Property="BorderThickness" Value="0 0 0 0"/>
+            <Setter Property="Padding" Value="5 0 5 0"/>
+            <!--Left, top, right, bottom-->
+            <!--Convoluted but necessary way to set the padding.-->
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type DataGridCell}">
+                        <Border Padding="{TemplateBinding Padding}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
+                            <ContentPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Application.Resources>
 </Application>

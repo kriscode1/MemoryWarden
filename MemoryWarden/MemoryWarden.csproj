@@ -87,6 +87,7 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
+    <Compile Include="TableFormatter.cs" />
     <Compile Include="UserSettings.cs" />
     <Compile Include="SharedStatics.cs" />
     <Compile Include="SystemMemory.cs" />

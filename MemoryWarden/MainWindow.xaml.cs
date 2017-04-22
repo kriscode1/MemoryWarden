@@ -9,7 +9,6 @@ using System.Windows.Media;
 //using System.Windows.Forms;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Collections;
 
 namespace MemoryWarden
 {
@@ -22,8 +21,8 @@ namespace MemoryWarden
         private System.Windows.Forms.Timer checkMemoryTimer;
         private ObservableCollection<WarningEvent> warnings;
         private UserSettings userSettings;
-        //Brushes
         private Brush badCellBackground;
+        private TableFormatter warningsDataGridFormatter;
 
         public MainWindow()
         {
@@ -39,9 +38,9 @@ namespace MemoryWarden
             trayIcon.MouseClick += trayIconClicked;
             trayIcon.Visible = true;
             trayIcon.BalloonTipClicked += TrayIcon_BalloonTipClicked;
-            
-            //// Programmatically build warnings table for user to modify
 
+            //// Programmatically build warnings table for user to modify
+            
             //Column: warning type
             DataGridComboBoxColumn warningTypeColumn = new DataGridComboBoxColumn();
             warningTypeColumn.Header = "Warning Type";
@@ -50,6 +49,7 @@ namespace MemoryWarden
             warningTypeColumnBind.Mode = BindingMode.TwoWay;
             warningTypeColumnBind.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
             warningTypeColumn.SelectedItemBinding = warningTypeColumnBind;
+            warningTypeColumn.CellStyle = (Style)Resources["warningsTypeCell"];
 
             //Column: treshold value
             DataGridTextColumn thresholdValueColumn = new DataGridTextColumn();
@@ -58,10 +58,9 @@ namespace MemoryWarden
             Binding thresholdValueColumnBind = new Binding("thresholdText");
             thresholdValueColumnBind.Mode = BindingMode.TwoWay;
             thresholdValueColumnBind.UpdateSourceTrigger = UpdateSourceTrigger.LostFocus;
-            //thresholdValueColumnBind.ValidationRules.Add(new PercentsValidator());
             thresholdValueColumn.Binding = thresholdValueColumnBind;
-            thresholdValueColumn.CellStyle = (Style) Resources["warningsThresholdCell"];
-            
+            thresholdValueColumn.CellStyle = (Style)Resources["warningsThresholdCell"];
+
             //Add columns in desired order
             warningsDataGrid.Columns.Clear();
             warningsDataGrid.Columns.Add(warningTypeColumn);
@@ -80,15 +79,18 @@ namespace MemoryWarden
             warningsDataGrid.Items.SortDescriptions.Add(new SortDescription("threshold", ListSortDirection.Ascending));
             warningsDataGrid.Items.IsLiveSorting = true;
 
+            //Table formatter helper, to store the settings for event handlers
+            //Will likely expand in the future.
+            warningsDataGridFormatter = new TableFormatter(warningsDataGrid);
+
             //Fill in default user settings
             userSettings = new UserSettings();
             warningResetThresholdTextBox.Text = userSettings.warningResetThreshold.ToString();
             warningWindowProcessMinTextBox.Text = userSettings.warningWindowProcessMin.ToString();
             warningWindowProcessMaxTextBox.Text = userSettings.warningWindowProcessMax.ToString();
             warningWindowProcessPercentMinTextBox.Text = userSettings.warningWindowProcessPercentMin.ToString();
-            
-        }
 
+        }
         private void TrayIcon_BalloonTipClicked(object sender, EventArgs e)
         {
             //Bring up settings window.
@@ -101,13 +103,13 @@ namespace MemoryWarden
             //Called when the user types into the a text box, to block non-digits
             //Used with PreviewTextInput event
             char c = Convert.ToChar(e.Text);
-            Console.WriteLine("char:" + c + "|" + (int)c);
             if ((c < '0') || (c > '9'))
             {
                 //Non-digit was typed
                 //Do not let the child object handle this
                 e.Handled = true;
-            } else e.Handled = false;
+            }
+            else e.Handled = false;
             base.OnPreviewTextInput(e);
         }
 
@@ -123,7 +125,7 @@ namespace MemoryWarden
             //Example: frequency text box
             //Used with LostKeyboardFocus event
             TextBox textBox = sender as TextBox;
-            if ((textBox.Text.Length == 0) || 
+            if ((textBox.Text.Length == 0) ||
                 (textBox.Text == "0") ||
                 (HasDigitsOnly(textBox.Text) == false))
             {
@@ -156,7 +158,7 @@ namespace MemoryWarden
         private DataGridCell GetCellFromCellInfo(DataGridCellInfo cellInfo)
         {
             //Helper function to convert a DataGridCellInfo object into a more useful DataGridCell.
-            
+
             FrameworkElement cellContent = cellInfo.Column.GetCellContent(cellInfo.Item);
             //Because cellInfo doesn't have a Content property.
             if (cellContent != null) return (DataGridCell)cellContent.Parent;
@@ -293,9 +295,9 @@ namespace MemoryWarden
                 }
             }
             if (wasBadContent) return;
-            
+
             //Check that there is at most one kill warning
-            string sharedKillWarningTooltipText = 
+            string sharedKillWarningTooltipText =
                 "Kill warning windows will automatically kill the top memory hogging\n" +
                 "processes, without your input. Use this to prevent system lockup\n" +
                 "for very high memory usage. Example: 95% or higher.";
@@ -412,7 +414,7 @@ namespace MemoryWarden
                 warningWindowProcessMaxTextBox.Background = badCellBackground;
                 CreateErrorTooltip(
                     "Minimum number of processes to show must be less than\n" +
-                    "or equal to the maximum number of processes to show.", 
+                    "or equal to the maximum number of processes to show.",
                     warningWindowProcessMaxTextBox);
                 return;
             }
@@ -454,7 +456,7 @@ namespace MemoryWarden
             sortHelper.Sort((x, y) => x.threshold.CompareTo(y.threshold));
             warnings.Clear();//Clear and Add necessary to preserve binding settings.
             foreach (WarningEvent warning in sortHelper) warnings.Add(warning);
-            
+
             //Start timer
             checkMemoryTimer = new System.Windows.Forms.Timer();
             checkMemoryTimer.Interval = frequency;
@@ -475,7 +477,7 @@ namespace MemoryWarden
                 if (warning.enabled == false)
                 {
                     //Check if the memory went low enough to re-enable the warning
-                    if ((userSettings.warningResetThreshold < warning.threshold) && 
+                    if ((userSettings.warningResetThreshold < warning.threshold) &&
                         (memoryUsage <= (warning.threshold - userSettings.warningResetThreshold)))
                     {
                         warning.enabled = true;
@@ -511,13 +513,13 @@ namespace MemoryWarden
                 //Open the new warning window
                 warnings[lastWarningIndexToActivate].enabled = false;
                 warnings[lastWarningIndexToActivate].warningWindow = new WarningWindow(
-                    warnings[lastWarningIndexToActivate].threshold, 
+                    warnings[lastWarningIndexToActivate].threshold,
                     warnings[lastWarningIndexToActivate].type,
                     userSettings);
                 warnings[lastWarningIndexToActivate].warningWindow.Show();
             }
         }
-        
+
         private void trayIconClicked(object sender, System.Windows.Forms.MouseEventArgs e)
         {
             this.WindowState = WindowState.Normal;
@@ -529,7 +531,7 @@ namespace MemoryWarden
                 checkMemoryTimer.Stop();
                 checkMemoryTimer.Dispose();
             }
-            
+
             //Check existing warnings for any open windows before the user changes something
             CloseAnOpenWarningWindow();
 
@@ -576,6 +578,37 @@ namespace MemoryWarden
         {
             TextBox textBox = sender as TextBox;
             textBox.SelectAll();
+        }
+
+        private void Row_MouseEnter(object sender, MouseEventArgs e)
+        {
+            DataGridRow row = sender as DataGridRow;
+            if (row != null) warningsDataGridFormatter.MouseEnterRow(row);
+        }
+        private void Row_MouseLeave(object sender, MouseEventArgs e)
+        {
+            DataGridRow row = sender as DataGridRow;
+            if (row != null) warningsDataGridFormatter.MouseLeaveRow(row);
+        }
+        private void Row_Selected(object sender, RoutedEventArgs e)
+        {
+            DataGridRow row = sender as DataGridRow;
+            if (row != null) warningsDataGridFormatter.RowSelected(row);
+        }
+        private void Row_Unselected(object sender, RoutedEventArgs e)
+        {
+            DataGridRow row = sender as DataGridRow;
+            if (row != null) warningsDataGridFormatter.RowUnselected(row);
+        }
+        private void Cell_Selected(object sender, RoutedEventArgs e)
+        {
+            DataGridCell cell = sender as DataGridCell;
+            if (cell != null) warningsDataGridFormatter.CellSelected(cell);
+        }
+        private void Cell_Unselected(object sender, RoutedEventArgs e)
+        {
+            DataGridCell cell = sender as DataGridCell;
+            if (cell != null) warningsDataGridFormatter.CellUnselected(cell);
         }
     }
 }
