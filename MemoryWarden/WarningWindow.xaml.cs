@@ -7,6 +7,7 @@ using System.Windows.Media;
 using System.Diagnostics;
 using System.ComponentModel;
 using System.Collections.ObjectModel;
+using System.IO;
 
 namespace MemoryWarden
 {
@@ -62,12 +63,16 @@ namespace MemoryWarden
         private double systemMemoryPercent;
         private UserSettings userSettings;
         private TableFormatter memoryHogsFormatter;
+        private bool killMode;
+        private uint memoryExceededThreshold;
 
         public WarningWindow(uint memoryExceededThreshold, WarningType warningType, UserSettings userSettings)
         {
             InitializeComponent();
             this.userSettings = userSettings;
-            Icon = SharedStatics.ToImageSource(Properties.Resources.prison);
+            killMode = (warningType == WarningType.kill);
+            this.memoryExceededThreshold = memoryExceededThreshold;
+            Icon = SharedStatics.ToImageSource(Properties.Resources.bars_white);
             
             //Formatter helper for the table settings, will likely expand in the future.
             memoryHogsFormatter = new TableFormatter(memoryHogs);
@@ -99,6 +104,7 @@ namespace MemoryWarden
             }
             else if (warningType == WarningType.kill)
             {
+                //Will do the kill tasks in the next timer cycle so this constructor can finish
                 this.Show();
                 this.Activate();
                 this.Topmost = true;
@@ -124,6 +130,105 @@ namespace MemoryWarden
 
             RefreshProcessTable(userSettings.warningWindowProcessMin, userSettings.warningWindowProcessMax, userSettings.warningWindowProcessPercentMin); ;
             SetSystemMemoryPercentAndLabel();
+            if (killMode)
+            {
+                refreshTimer.Stop();
+                KillMemoryHogs();
+                refreshTimer.Start();
+                killMode = false;
+            }
+        }
+
+        private void KillMemoryHogs()
+        {
+            String tempOutput = "";
+            StreamWriter log = new StreamWriter("log.txt", true);
+            log.AutoFlush = true;
+            int attemptedKillCount = 0;
+            while (systemMemoryPercent > memoryExceededThreshold)
+            {
+                tempOutput = String.Format("{0} System memory {1:F2}% > {2:F2}%\n", DateTime.Now.ToString(), systemMemoryPercent, memoryExceededThreshold);
+                log.Write(tempOutput);
+                Process hog = processesSorted[attemptedKillCount];
+                log.Write("Killing process:\n");
+                log.Write("\tName:\t" + hog.ProcessName + "\n");
+                log.Write("\tPID:\t" + hog.Id + "\n");
+                log.Write("Result:\t");
+                Idk processKilled = Idk.IDK;
+                try { hog.Kill(); }
+                catch
+                {
+                    processKilled = CheckProcessIsKilled(hog);
+                    if (processKilled != Idk.TRUE)
+                    {
+                        //Maybe the process is killed,
+                        log.Write("Kill failed.\n\n");
+                        continue;// but move on from this error anyways.
+                    }
+                }
+                finally
+                {
+                    ++attemptedKillCount;
+                }
+                if (processKilled == Idk.IDK) processKilled = CheckProcessIsKilled(hog);
+
+                //Documentation states Kill() is asynchronous,
+                //and I do not want to block until the process is killed.
+                //Kill() did not error, so wait a little to see if it worked
+                int waitCount = 0;
+                while ((processKilled != Idk.TRUE) && (waitCount < 10))
+                {
+                    System.Threading.Thread.Sleep(100);//0.1 seconds
+                    ++waitCount;
+                    processKilled = CheckProcessIsKilled(hog);
+                }
+
+                //If process was killed, wait 1 second before killing the next.
+                if (processKilled == Idk.TRUE)
+                {
+                    log.Write("Kill succeeded.\n\n");
+                    System.Threading.Thread.Sleep(1000);
+                }
+                else if (processKilled == Idk.FALSE)
+                {
+                    log.Write("Kill failed.\n\n");
+                }
+                else
+                {
+                    log.Write("Kill status uncertain.\n\n");
+                }
+
+                //Checking RAM again, whether the killed process was exited or not
+                systemMemoryPercent = SystemMemory.GetMemoryPercentUsed();
+            }
+            tempOutput = String.Format("{0} System memory {1:F2}% is below the warning level again.\n", DateTime.Now, systemMemoryPercent);
+            log.Write(tempOutput);
+            log.Close();
+        }
+
+        private Idk CheckProcessIsKilled(Process p)
+        {
+            bool hasExited;
+            try { hasExited = p.HasExited; }
+            catch (InvalidOperationException)
+            {
+                //There is no process associated with the object.
+                return Idk.TRUE;
+            }
+            catch (Win32Exception)
+            {
+                //The exit code for the process could not be retrieved.
+                return Idk.IDK;
+            }
+            catch (NotSupportedException)
+            {
+                //You are trying to access the HasExited property for a process
+                //that is running on a remote computer.This property is available
+                //only for processes that are running on the local computer.
+                return Idk.FALSE;
+            }
+            if (hasExited) return Idk.TRUE;
+            return Idk.FALSE;
         }
 
         private void RefreshProcessLists()
@@ -231,16 +336,7 @@ namespace MemoryWarden
             systemMemoryLabel.Content = string.Format("{0:F2}", systemMemoryPercent);
 
             //Calcualte colors
-            double memoryGoodRatio;
-            // Used for calculating the green/red color
-            // 60% or less is good, 90% or more is bad
-            if (systemMemoryPercent <= 60) memoryGoodRatio = 1;
-            else if (systemMemoryPercent >= 90) memoryGoodRatio = 0;
-            else memoryGoodRatio = (90 - systemMemoryPercent) / 30;
-
-            double green = memoryGoodRatio * 0xFF;
-            double red = (1 - memoryGoodRatio) * 0xFF;
-            Brush systemBasedBrush = new SolidColorBrush(Color.FromArgb(0xFF, (byte)red, (byte)green, 0));
+            Brush systemBasedBrush = SharedStatics.CalculateMemoryBrush(systemMemoryPercent);
 
             //Apply brush wherever
             systemMemoryLabel.Background = systemBasedBrush;
@@ -324,6 +420,13 @@ namespace MemoryWarden
         {
             DataGridCell cell = sender as DataGridCell;
             if (cell != null) memoryHogsFormatter.CellUnselected(cell);
+        }
+
+        private void WindowClosing(object sender, CancelEventArgs e)
+        {
+            Console.WriteLine("closing");
+            StopRefreshTimer();
+
         }
     }
 }

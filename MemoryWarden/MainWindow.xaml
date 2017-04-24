@@ -23,6 +23,7 @@
         <StackPanel.Background>
             <SolidColorBrush Color="{DynamicResource {x:Static SystemColors.ControlColorKey}}"/>
         </StackPanel.Background>
+        <ProgressBar x:Name="currentMemoryUsageBar" Value="{Binding Path=memoryUsageForGUI, Mode=OneWay, NotifyOnSourceUpdated=True}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" ScrollViewer.VerticalScrollBarVisibility="Disabled" Height="10" IsTabStop="False" Background="#FFE6E6E6" BorderBrush="#FF404040"/>
         <StackPanel x:Name="checkFrequency" HorizontalAlignment="Left" VerticalAlignment="Top" Orientation="Horizontal" Margin="10">
             <Label x:Name="label2" Content="Check memory (RAM%) every"/>
             <TextBox x:Name="frequencyTextBox" Text="2" HorizontalContentAlignment="Center" HorizontalAlignment="Left" VerticalAlignment="Center" VerticalContentAlignment="Center" Padding="0" Margin="0,0,10,0" UndoLimit="5" MaxLines="1" MaxLength="5" MinWidth="45" PreviewTextInput="TypeDigitsOnly" LostKeyboardFocus="ForceTextBoxToHavePositiveInt" AllowDrop="False" GotKeyboardFocus="HighlightTextboxContentsOnFocus"/>
@@ -46,15 +47,21 @@
                 </Grid.RowDefinitions>
                 <Button x:Name="addWarningButton" Content="Add" VerticalAlignment="Center" Width="130" Height="23" Click="AddWarningClicked" Grid.Column="1" ToolTip="Add a new warning."/>
                 <Button x:Name="removeWarningButton" Content="Remove" Grid.Column="3" VerticalAlignment="Center" Width="130" Height="23" Click="RemoveWarningClicked" ToolTip="Remove the selected warning." IsEnabled="False"/>
-                <DataGrid x:Name="warningsDataGrid" Style="{StaticResource customDataGridStyle}"  CellStyle="{StaticResource customDataGridCellStyle}" Margin="0,10,0,0" Grid.Row="1" Grid.ColumnSpan="5" HorizontalScrollBarVisibility="Disabled" CanUserReorderColumns="False" CanUserResizeRows="False" AutoGenerateColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" SelectionChanged="SelectedWarningsChanged">
+                <DataGrid x:Name="warningsDataGrid" Margin="0,10,0,0" Grid.Row="1" Grid.ColumnSpan="5" HorizontalScrollBarVisibility="Disabled" CanUserReorderColumns="False" CanUserResizeRows="False" AutoGenerateColumns="False" CanUserResizeColumns="False" CanUserSortColumns="False" SelectionChanged="SelectedWarningsChanged">
                     <DataGrid.Resources>
-                        <Style TargetType="DataGridRow" BasedOn="{StaticResource customDataGridRowStyle}">
-                            <EventSetter Event="MouseEnter" Handler="Row_MouseEnter"/>
-                            <EventSetter Event="MouseLeave" Handler="Row_MouseLeave"/>
-                            <EventSetter Event="Selected" Handler="Row_Selected" />
-                            <EventSetter Event="Unselected" Handler="Row_Unselected" />
+                        <Style TargetType="{x:Type DataGridRow}" BasedOn="{StaticResource customDataGridRowStyle}">
+                            <EventSetter Event="UIElement.MouseEnter" Handler="Row_MouseEnter"/>
+                            <EventSetter Event="UIElement.MouseLeave" Handler="Row_MouseLeave"/>
+                            <EventSetter Event="DataGridRow.Selected" Handler="Row_Selected" />
+                            <EventSetter Event="DataGridRow.Unselected" Handler="Row_Unselected" />
                         </Style>
                     </DataGrid.Resources>
+                    <DataGrid.Style>
+                        <StaticResource ResourceKey="customDataGridStyle"/>
+                    </DataGrid.Style>
+                    <DataGrid.CellStyle>
+                        <StaticResource ResourceKey="customDataGridCellStyle"/>
+                    </DataGrid.CellStyle>
                 </DataGrid>
             </Grid>
         </GroupBox>
@@ -62,7 +69,7 @@
             <Button x:Name="exitButton" Content="Exit" Margin="0,0,10,0" Width="80" Click="exitButtonClicked" ToolTip="Quit Memory Warden"/>
             <Button x:Name="okButton" Content="OK" Width="80" Margin="0,0,10,0" Click="okButtonClicked" ToolTip="Save settings and start guarding for warnings."/>
         </StackPanel>
-        <Expander x:Name="expander" Header="Advanced Settings">
+        <Expander x:Name="expander" Header="Advanced Settings" d:IsLocked="True">
             <Grid x:Name="advancedSettingsGrid">
                 <Grid.RowDefinitions>
                     <RowDefinition/>

@@ -15,10 +15,25 @@ namespace MemoryWarden
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler PropertyChanged;
+        private void OnPropertyChanged(string propertyName)
+        {
+            if (PropertyChanged != null) PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+        }
+
         private System.Windows.Forms.NotifyIcon trayIcon;
-        private System.Windows.Forms.Timer checkMemoryTimer;
+        private System.Windows.Forms.Timer checkMemoryTimer, waitingForUserTimer;
+        private double memoryUsageForGUIHidden;
+        public double memoryUsageForGUI {
+            get { return memoryUsageForGUIHidden; }
+            set
+            {
+                memoryUsageForGUIHidden = value;
+                OnPropertyChanged("memoryUsageForGUI");
+            }
+        }
         private ObservableCollection<WarningEvent> warnings;
         private UserSettings userSettings;
         private Brush badCellBackground;
@@ -27,20 +42,30 @@ namespace MemoryWarden
         public MainWindow()
         {
             InitializeComponent();
-            Icon = SharedStatics.ToImageSource(Properties.Resources.prison);
+            Icon = SharedStatics.ToImageSource(Properties.Resources.bars_white);
             this.DataContext = this;
             badCellBackground = new SolidColorBrush(Color.FromArgb(128, 255, 0, 0));
+
+            //Create right click menu for the tray icon
+            System.Windows.Forms.ContextMenu trayIconRightClick = new System.Windows.Forms.ContextMenu();
+            System.Windows.Forms.MenuItem trayMenuSettings = new System.Windows.Forms.MenuItem("Settings");
+            trayMenuSettings.Click += TrayMenuSettings_Click;
+            System.Windows.Forms.MenuItem trayMenuQuit = new System.Windows.Forms.MenuItem("Quit");
+            trayMenuQuit.Click += TrayMenuQuit_Click;
+            trayIconRightClick.MenuItems.Add(trayMenuSettings);
+            trayIconRightClick.MenuItems.Add(trayMenuQuit);
 
             //Create tray icon
             trayIcon = new System.Windows.Forms.NotifyIcon();
             trayIcon.Text = "Memory Warden";
-            trayIcon.Icon = Properties.Resources.prison;
+            trayIcon.Icon = Properties.Resources.bars_white;
             trayIcon.MouseClick += trayIconClicked;
             trayIcon.Visible = true;
             trayIcon.BalloonTipClicked += TrayIcon_BalloonTipClicked;
+            trayIcon.ContextMenu = trayIconRightClick;
 
             //// Programmatically build warnings table for user to modify
-            
+
             //Column: warning type
             DataGridComboBoxColumn warningTypeColumn = new DataGridComboBoxColumn();
             warningTypeColumn.Header = "Warning Type";
@@ -90,12 +115,70 @@ namespace MemoryWarden
             warningWindowProcessMaxTextBox.Text = userSettings.warningWindowProcessMax.ToString();
             warningWindowProcessPercentMinTextBox.Text = userSettings.warningWindowProcessPercentMin.ToString();
 
+            //Check memory and start timer for GUI, while waiting for user to press OK
+            //for updating currentMemoryUsageBar
+            waitingForUserTimer = new System.Windows.Forms.Timer();
+            waitingForUserTimer.Interval = 1000;//Ignore user frequency in this window
+            waitingForUserTimer.Tick += CheckMemoryWhileWaitingForUser;
+            CheckMemoryWhileWaitingForUser(this, null);//Call once so user doesn't wait
+            waitingForUserTimer.Start();
         }
+        
+        private void CheckMemoryWhileWaitingForUser(object sender, EventArgs e)
+        {
+            //Called by timer to update currentMemoryUsageBar
+            memoryUsageForGUI = SystemMemory.GetMemoryPercentUsed();
+            currentMemoryUsageBar.Foreground = SharedStatics.CalculateMemoryBrush(memoryUsageForGUI);
+            currentMemoryUsageBar.ToolTip = String.Format("System memory at {0:F2}%", memoryUsageForGUI);
+        }
+
         private void TrayIcon_BalloonTipClicked(object sender, EventArgs e)
         {
             //Bring up settings window.
             //Same as clicking on the tray icon.
-            trayIconClicked(sender, null);//I don't use the args anyways.
+            TrayIconLeftClicked();
+        }
+
+        private void trayIconClicked(object sender, System.Windows.Forms.MouseEventArgs e)
+        {
+            if (e.Button == System.Windows.Forms.MouseButtons.Left)
+            {
+                TrayIconLeftClicked();
+            }
+        }
+
+        private void TrayIconLeftClicked()
+        {
+            this.WindowState = WindowState.Normal;
+            this.ShowInTaskbar = true;
+            this.Activate();
+            waitingForUserTimer.Start();
+            if (checkMemoryTimer != null)
+            {
+                //Disable making warnings while user is changing settings
+                checkMemoryTimer.Stop();
+                checkMemoryTimer.Dispose();
+            }
+
+            //Check existing warnings for any open windows before the user changes something
+            CloseAnOpenWarningWindow();
+
+            //Notify the user that monitoring is paused
+            trayIcon.ShowBalloonTip(
+                3000,
+                "Memory Warden Paused",
+                "Memory warnings are paused.",
+                System.Windows.Forms.ToolTipIcon.None);
+        }
+
+        private void TrayMenuQuit_Click(object sender, EventArgs e)
+        {
+            exitButtonClicked(sender, null);
+        }
+
+        private void TrayMenuSettings_Click(object sender, EventArgs e)
+        {
+            TrayIconLeftClicked();
         }
 
         private void TypeDigitsOnly(object sender, TextCompositionEventArgs e)
@@ -136,6 +219,7 @@ namespace MemoryWarden
         private void WindowClosed(object sender, EventArgs e)
         {
             trayIcon.Visible = false;
+            exitButtonClicked(sender, null);
         }
 
         private void CloseAnOpenWarningWindow()
@@ -437,6 +521,7 @@ namespace MemoryWarden
             //Hide the main window
             this.WindowState = WindowState.Minimized;
             this.ShowInTaskbar = false;
+            waitingForUserTimer.Stop();
 
             //Show the tray icon balloon tip
             trayIcon.ShowBalloonTip(
@@ -456,7 +541,7 @@ namespace MemoryWarden
             sortHelper.Sort((x, y) => x.threshold.CompareTo(y.threshold));
             warnings.Clear();//Clear and Add necessary to preserve binding settings.
             foreach (WarningEvent warning in sortHelper) warnings.Add(warning);
-
+            
             //Start timer
             checkMemoryTimer = new System.Windows.Forms.Timer();
             checkMemoryTimer.Interval = frequency;
@@ -520,31 +605,10 @@ namespace MemoryWarden
             }
         }
 
-        private void trayIconClicked(object sender, System.Windows.Forms.MouseEventArgs e)
-        {
-            this.WindowState = WindowState.Normal;
-            this.ShowInTaskbar = true;
-            this.Activate();
-            if (checkMemoryTimer != null)
-            {
-                //Disable making warnings while user is changing settings
-                checkMemoryTimer.Stop();
-                checkMemoryTimer.Dispose();
-            }
-
-            //Check existing warnings for any open windows before the user changes something
-            CloseAnOpenWarningWindow();
-
-            //Notify the user that monitoring is paused
-            trayIcon.ShowBalloonTip(
-                3000,
-                "Memory Warden Paused",
-                "Memory warnings are paused.",
-                System.Windows.Forms.ToolTipIcon.None);
-        }
-
         private void exitButtonClicked(object sender, RoutedEventArgs e)
         {
+            waitingForUserTimer.Stop();
+            waitingForUserTimer.Dispose();
             CloseAnOpenWarningWindow();
             Application.Current.Shutdown();
             this.Close();//Yes, the application is probably still running here

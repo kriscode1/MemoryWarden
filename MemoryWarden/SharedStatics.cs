@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -12,6 +8,21 @@ namespace MemoryWarden
 {
     class SharedStatics
     {
+        public static Brush CalculateMemoryBrush(double memoryPercent)
+        {
+            //Calcualte colors
+            double memoryGoodRatio;
+            // Used for calculating the green/red color
+            // 60% or less is good, 90% or more is bad
+            if (memoryPercent <= 60) memoryGoodRatio = 1;
+            else if (memoryPercent >= 90) memoryGoodRatio = 0;
+            else memoryGoodRatio = (90 - memoryPercent) / 30;
+
+            double green = memoryGoodRatio * 0xFF;
+            double red = (1 - memoryGoodRatio) * 0xFF;
+            return new SolidColorBrush(Color.FromArgb(0xFF, (byte)red, (byte)green, 0));
+        }
+
         public static ImageSource ToImageSource(System.Drawing.Icon icon)
         {
             //Used when converting a .ico resource to a window icon.

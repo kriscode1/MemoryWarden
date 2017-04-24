@@ -5,28 +5,36 @@
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <Style TargetType="Label">
+            <Setter Property="FontFamily" Value="Arial"/>
             <Setter Property="FontSize" Value="14"/>
         </Style>
         <Style TargetType="TextBox">
+            <Setter Property="FontFamily" Value="Arial"/>
             <Setter Property="FontSize" Value="14"/>
         </Style>
         <Style TargetType="ComboBox">
+            <Setter Property="FontFamily" Value="Arial"/>
             <Setter Property="FontSize" Value="14"/>
         </Style>
         <Style TargetType="ComboBoxItem">
+            <Setter Property="FontFamily" Value="Arial"/>
             <Setter Property="FontSize" Value="14"/>
         </Style>
         <Style TargetType="CheckBox">
+            <Setter Property="FontFamily" Value="Arial"/>
             <Setter Property="FontSize" Value="14"/>
         </Style>
         <Style TargetType="Button">
+            <Setter Property="FontFamily" Value="Arial"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FlowDirection" Value="LeftToRight"/>
         </Style>
         <Style TargetType="GroupBox">
+            <Setter Property="FontFamily" Value="Arial"/>
             <Setter Property="FontSize" Value="14"/>
         </Style>
         <Style TargetType="DataGrid" x:Key="customDataGridStyle">
+            <Setter Property="FontFamily" Value="Arial"/>
             <Setter Property="RowHeaderWidth" Value="0"/>
             <Setter Property="GridLinesVisibility" Value="Vertical"/>
             <Setter Property="VerticalGridLinesBrush" Value="LightGray"/>
@@ -34,11 +42,13 @@
             <Setter Property="Background" Value="White"/>
         </Style>
         <Style TargetType="DataGridRow" x:Key="customDataGridRowStyle">
+            <Setter Property="FontFamily" Value="Arial"/>
             <Setter Property="BorderThickness" Value="0 1 0 1"/>
             <Setter Property="Foreground" Value="Black"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
         </Style>
         <Style TargetType="DataGridCell" x:Key="customDataGridCellStyle">
+            <Setter Property="FontFamily" Value="Arial"/>
             <Setter Property="BorderThickness" Value="0 0 0 0"/>
             <Setter Property="Padding" Value="5 0 5 0"/>
             <!--Left, top, right, bottom-->

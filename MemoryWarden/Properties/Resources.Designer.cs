@@ -63,9 +63,9 @@ namespace MemoryWarden.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
-        public static System.Drawing.Icon prison {
+        public static System.Drawing.Icon bars_white {
             get {
-                object obj = ResourceManager.GetObject("prison", resourceCulture);
+                object obj = ResourceManager.GetObject("bars_white", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }
